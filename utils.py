@@ -2,7 +2,7 @@ import csv
 import random
 
 import torch
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from transformers import PreTrainedTokenizer
 
@@ -20,20 +20,17 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def _read_data(data_path: str) -> Dict[str, List[Dict[str, str]]]:
-    """
-    Read data from data path
-    data = dict(list(dict()))
-         = {'8': [
-                     {'id': '8', 'q': '"It can go both ways..."', ... },
-                     {'id': '8', 'q': ... },
-                     ...
-                 ]
-            '9': [
-                     {'id': '9', 'q': '"I personly would not condone an abortion..."', ... },
-                     {'id': '9', 'q': ... },
-                     ...
-                 ]
+def _read_data(data_path: str) -> Dict[str, Dict[str, Any]]:
+    """Reads from data_path
+    data: Dict[str, Dict[str, Any]]
+        = {
+            '0': {
+                    'q': str,
+                    'r': str,
+                    's': str,
+                    'qq': List[str],
+                    'rr': List[str],
+                 },
             ...
            }
     """
@@ -41,11 +38,24 @@ def _read_data(data_path: str) -> Dict[str, List[Dict[str, str]]]:
     with open(data_path, newline="") as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
-            if row["id"] not in data:
-                data[row["id"]] = [row]
-            else:
-                data[row["id"]].append(row)
-
+            id, q, r, s, qq, rr = (
+                row["id"],
+                row["q"],
+                row["r"],
+                row["s"],
+                row["q'"],
+                row["r'"],
+            )
+            if id not in data:
+                data[id] = {
+                    "q": q,
+                    "r": r,
+                    "s": s,
+                    "qq": [],
+                    "rr": [],
+                }
+            data[id]["qq"].append(qq)
+            data[id]["rr"].append(rr)
     return data
 
 
@@ -55,7 +65,6 @@ def _preprocess(
     """
     TODO Preprocess data
     """
-
     return data
 
 
@@ -63,20 +72,18 @@ def get_data(
     data_path: str,
     tokenizer: PreTrainedTokenizer,
     max_length: int,
-) -> Dict[str, List[Dict[str, str]]]:
+) -> Dict[str, Dict[str, Any]]:
     """
     Read, preprocess and tokenize data
-    data = dict(list(dict()))
-         = {'8': [
-                     {'id': '8', 'q': tokenize("It can go both ways..."), ... },
-                     {'id': '8', 'q': ... },
-                     ...
-                 ]
-            '9': [
-                     {'id': '9', 'q': tokenize("I personly would not condone an abortion..."), ... },
-                     {'id': '9', 'q': ... },
-                     ...
-                 ]
+    data: Dict[str, Dict[str, Any]]
+        = {
+            '0': {
+                    'q': str,
+                    'r': str,
+                    's': str,
+                    'qq': List[Dict[str, List]],
+                    'rr': List[Dict[str, List]],
+                 },
             ...
            }
     """
@@ -87,11 +94,9 @@ def get_data(
     data = _preprocess(data)
 
     # tokenize: q, r, q', r'
-    for _, v in data.items():
-        for cand in v:
-            cand["q"] = tokenizer(cand["q"], add_special_tokens=False)
-            cand["r"] = tokenizer(cand["r"], add_special_tokens=False)
-            cand["q'"] = tokenizer(cand["q'"], add_special_tokens=False)
-            cand["r'"] = tokenizer(cand["r'"], add_special_tokens=False)
-
+    for _, entry in data.items():
+        entry["q"] = tokenizer(entry["q"], add_special_tokens=False)
+        entry["r"] = tokenizer(entry["r"], add_special_tokens=False)
+        entry["qq"] = [tokenizer(qq, add_special_tokens=False) for qq in entry["qq"]]
+        entry["rr"] = [tokenizer(qq, add_special_tokens=False) for qq in entry["rr"]]
     return data
