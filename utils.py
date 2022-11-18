@@ -2,9 +2,12 @@ import csv
 import random
 
 import torch
+from typing import Dict, List
+
+from transformers import PreTrainedTokenizer
 
 
-def set_seed(seed):
+def set_seed(seed: int) -> None:
     """
     Fixed seed
     """
@@ -17,7 +20,7 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 
-def read_data(data_path):
+def _read_data(data_path: str) -> Dict[str, List[Dict[str, str]]]:
     """
     Read data from data path
     data = dict(list(dict()))
@@ -35,26 +38,32 @@ def read_data(data_path):
            }
     """
     data = {}
-    with open(data_path, newline='') as f:
-        reader = csv.DictReader(f, delimiter=',')
+    with open(data_path, newline="") as f:
+        reader = csv.DictReader(f, delimiter=",")
         for row in reader:
-            if row['id'] not in data:
-                data[row['id']] = [row]
+            if row["id"] not in data:
+                data[row["id"]] = [row]
             else:
-                data[row['id']].append(row)
+                data[row["id"]].append(row)
 
     return data
 
 
-def preprocess(data):
+def _preprocess(
+    data: Dict[str, List[Dict[str, str]]]
+) -> Dict[str, List[Dict[str, str]]]:
     """
-    Preprocess data
+    TODO Preprocess data
     """
-    
+
     return data
 
 
-def get_data(data_path, tokenizer, max_length):
+def get_data(
+    data_path: str,
+    tokenizer: PreTrainedTokenizer,
+    max_length: int,
+) -> Dict[str, List[Dict[str, str]]]:
     """
     Read, preprocess and tokenize data
     data = dict(list(dict()))
@@ -72,17 +81,17 @@ def get_data(data_path, tokenizer, max_length):
            }
     """
     # Read data
-    data = read_data(data_path)
+    data = _read_data(data_path)
 
     # Preprocess
-    data = preprocess(data)
-    
+    data = _preprocess(data)
+
     # tokenize: q, r, q', r'
-    for k, v in data.items():
+    for _, v in data.items():
         for cand in v:
-            cand['q'] = tokenizer(cand['q'], add_special_tokens=False)
-            cand['r'] = tokenizer(cand['r'], add_special_tokens=False)
-            cand['q\''] = tokenizer(cand['q\''], add_special_tokens=False)
-            cand['r\''] = tokenizer(cand['r\''], add_special_tokens=False)
+            cand["q"] = tokenizer(cand["q"], add_special_tokens=False)
+            cand["r"] = tokenizer(cand["r"], add_special_tokens=False)
+            cand["q'"] = tokenizer(cand["q'"], add_special_tokens=False)
+            cand["r'"] = tokenizer(cand["r'"], add_special_tokens=False)
 
     return data
