@@ -35,7 +35,8 @@ def get_args() -> argparse.Namespace:
     )
 
     # Data settings
-    parser.add_argument("--data_path", default="../data/data_v1.json", type=str)
+    parser.add_argument(
+        "--data_path", default="../data/data_v1.json", type=str)
     parser.add_argument("--max_length", default=512, type=int)
     parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--pretrained", type=str, default="bert-base-cased")
@@ -72,22 +73,38 @@ def main(args) -> None:
     tokenizer, model = get_tokenizer_and_model(args.pretrained)
     with open(args.data_path, newline="") as f:
         data = json.load(f)
-    
 
     # Split train valid ids
     train_ids = list(set([dic['id'] for dic in data]))
-    train_ids, valid_ids = train_test_split(
+    train_ids, _ = train_test_split(
         train_ids, test_size=args.valid_size)
+    train_ids = set(train_ids)
+
+    train_data, dev_data = [], []
+
+    for entry in data:
+        if entry['id'] in train_ids:
+            train_data.append(entry)
+        else:
+            dev_data.append(entry)
+    del train_ids
+    del data
 
     # Prepare Dataset and Dataloader
-    trainset = RelationalDataset(data, train_ids, tokenizer, "train")
+    train_set = RelationalDataset(train_data, tokenizer, "train")
     train_loader = DataLoader(
-        trainset, batch_size=args.batch_size, shuffle=True)
+        train_set,
+        batch_size=args.batch_size,
+        shuffle=True,
+    )
 
-    validset = RelationalDataset(data, valid_ids, tokenizer, "valid")
-    valid_loader = DataLoader(
-        trainset, batch_size=args.batch_size, shuffle=False)
-
+    dev_set = RelationalDataset(dev_data, tokenizer, "dev")
+    dev_loader = DataLoader(
+        dev_set,
+        batch_size=args.batch_size,
+        shuffle=False,
+    )
+    exit()
     # Load model
     model = model.to(device)
 

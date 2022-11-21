@@ -4,7 +4,7 @@ import json
 import csv
 
 
-def json_from_raw(data_path: str = "../../data/data.csv") -> List[Dict[str, Union[int, bool, List[str]]]]:
+def json_from_raw_v2(data_path: str = "/tmp2/b08902011/ExplainableTagging/data/raw.csv") -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
     data = [{
             'id': 8,
@@ -21,13 +21,13 @@ def json_from_raw(data_path: str = "../../data/data.csv") -> List[Dict[str, Unio
         for row in reader:
             id = int(row["id"])
             s = row["s"] == 'AGREE'
-            q = row["q"].strip('"').split('.')
+            q = row["q"].strip('"').split(' .')
             q = [line.strip(' ') + ' .' for line in q if line != '']
-            r = row["r"].strip('"').split('.')
+            r = row["r"].strip('"').split(' .')
             r = [line.strip(' ') + ' .' for line in r if line != '']
-            qq = row["q'"].strip('"').split('.')
+            qq = row["q'"].strip('"').split(' .')
             qq = [line.strip(' ') for line in qq if line != '']
-            rr = row["r'"].strip('"').split('.')
+            rr = row["r'"].strip('"').split(' .')
             rr = [line.strip(' ') for line in rr if line != '']
             data.append({
                 "id": id,
@@ -80,5 +80,5 @@ def dict_from_raw(data_path: str = "../../data/data.csv") -> Dict[str, Dict[str,
 
 
 if __name__ == "__main__":
-    with open("./data_v1.json", "w") as f:
-        json.dump(json_from_raw(), f, indent=4)
+    with open("/tmp2/b08902011/ExplainableTagging/data/data_v1.json", "w") as f:
+        json.dump(json_from_raw_v2(), f, indent=4)
