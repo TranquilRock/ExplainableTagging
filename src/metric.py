@@ -18,26 +18,6 @@ def lcs_length(s1: List[str], s2: List[str]) -> int:
     return lcs[len(s1) % 2][len(s2)]
 
 
-def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
-    """
-    Originally the structure looks like
-        [
-            ["Answer line1", "Answer line2", ...]
-        ]
-    Transform into:
-        [
-            ["Answer", "line1", "Answer, "line2", ...]
-        ]
-    For LCS matching.
-    """
-    for i in range(len(answer_list)):
-        tmp_entry = []
-        for line in answer_list[i]:
-            tmp_entry += line.split(' ')
-        answer_list[i] = tmp_entry
-    return answer_list
-
-
 def cal_score(qq_guess: str, rr_guess: str, qq: List[str], rr: List[str]) -> float:
     """Calculate the score per id."""
 
