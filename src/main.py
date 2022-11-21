@@ -12,7 +12,7 @@ from transformers import (
     BertTokenizerFast,
     get_linear_schedule_with_warmup,
 )
-from dataset import RelationalDataset
+from data.dataset import RelationalDataset
 from utils import get_data, set_seed
 
 
@@ -73,16 +73,19 @@ def main(args) -> None:
 
     # Split train valid ids
     train_ids = list(data.keys())
-    train_ids, valid_ids = train_test_split(train_ids, test_size=args.valid_size)
+    train_ids, valid_ids = train_test_split(
+        train_ids, test_size=args.valid_size)
 
     # Prepare Dataset and Dataloader
     trainset = RelationalDataset(data, train_ids, "train")
-    train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True)
+    train_loader = DataLoader(
+        trainset, batch_size=args.batch_size, shuffle=True)
     print(trainset.get_max_data()[0])
     exit()
 
     validset = RelationalDataset(data, valid_ids, "valid")
-    valid_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=False)
+    valid_loader = DataLoader(
+        trainset, batch_size=args.batch_size, shuffle=False)
 
     # Load model
     model = model.to(device)
