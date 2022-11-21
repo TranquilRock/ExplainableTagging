@@ -13,7 +13,8 @@ from transformers import (
     get_linear_schedule_with_warmup,
 )
 from data.dataset import RelationalDataset
-from utils import get_data, set_seed
+from utils import set_seed
+import json
 
 
 def get_args() -> argparse.Namespace:
@@ -34,7 +35,7 @@ def get_args() -> argparse.Namespace:
     )
 
     # Data settings
-    parser.add_argument("--data_path", default="./data.csv", type=str)
+    parser.add_argument("--data_path", default="../data/data_v1.json", type=str)
     parser.add_argument("--max_length", default=512, type=int)
     parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--pretrained", type=str, default="bert-base-cased")
@@ -69,21 +70,21 @@ def main(args) -> None:
 
     # Get data
     tokenizer, model = get_tokenizer_and_model(args.pretrained)
-    data = get_data(args.data_path, tokenizer, args.max_length)
+    with open(args.data_path, newline="") as f:
+        data = json.load(f)
+    
 
     # Split train valid ids
-    train_ids = list(data.keys())
+    train_ids = list(set([dic['id'] for dic in data]))
     train_ids, valid_ids = train_test_split(
         train_ids, test_size=args.valid_size)
 
     # Prepare Dataset and Dataloader
-    trainset = RelationalDataset(data, train_ids, "train")
+    trainset = RelationalDataset(data, train_ids, tokenizer, "train")
     train_loader = DataLoader(
         trainset, batch_size=args.batch_size, shuffle=True)
-    print(trainset.get_max_data()[0])
-    exit()
 
-    validset = RelationalDataset(data, valid_ids, "valid")
+    validset = RelationalDataset(data, valid_ids, tokenizer, "valid")
     valid_loader = DataLoader(
         trainset, batch_size=args.batch_size, shuffle=False)
 
@@ -108,8 +109,8 @@ def main(args) -> None:
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
         model.train()
-        for ID, q, r, q_plum, r_plum in train_loader:
-            print(ID, q, r, q_plum, r_plum)
+        for ID, q, r in train_loader:
+            print(ID, q)
             break
         scheduler.step()
 
