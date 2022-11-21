@@ -7,15 +7,13 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from transformers import (
     LongformerTokenizerFast,
-    LongformerForQuestionAnswering,
-    BertForQuestionAnswering,
-    BertTokenizerFast,
+    LongformerModel,
     get_linear_schedule_with_warmup,
 )
 from data.dataset import RelationalDataset
 from utils import set_seed
 import json
-
+from model import RelationalModel
 
 def get_args() -> argparse.Namespace:
     """
@@ -37,9 +35,9 @@ def get_args() -> argparse.Namespace:
     # Data settings
     parser.add_argument(
         "--data_path", default="../data/data_v1.json", type=str)
-    parser.add_argument("--max_length", default=512, type=int)
-    parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--pretrained", type=str, default="bert-base-cased")
+    parser.add_argument("--max_length", default=2048, type=int)
+    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--pretrained", type=str, default="allenai/longformer-base-4096")
 
     # Train valid split
     parser.add_argument("--valid_size", default=0.2, type=float)
@@ -50,19 +48,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--gradient_accumulation_step", type=int, default=2)
     parser.add_argument("--lr", type=float, default=3e-5)
 
+    # Model settings
+    parser.add_argument("--num_classes", type=int, default=2)
+    
     args = parser.parse_args()
 
     return args
-
-
-def get_tokenizer_and_model(name: str):
-    if "bert" in name:
-        tokenizer = BertTokenizerFast.from_pretrained(name)
-        model = BertForQuestionAnswering.from_pretrained(name)
-    elif "longformer" in name:
-        tokenizer = LongformerTokenizerFast.from_pretrained(name)
-        model = LongformerForQuestionAnswering.from_pretrained(name)
-    return tokenizer, model
 
 
 def main(args) -> None:
@@ -70,7 +61,6 @@ def main(args) -> None:
     device = args.device
 
     # Get data
-    tokenizer, model = get_tokenizer_and_model(args.pretrained)
     with open(args.data_path, newline="") as f:
         data = json.load(f)
 
@@ -90,23 +80,25 @@ def main(args) -> None:
     del train_ids
     del data
 
+    # Load tokenizer and model
+    tokenizer = LongformerTokenizerFast.from_pretrained(args.pretrained)
+    model = RelationalModel(args.pretrained, args.num_classes)
+    model = model.to(device)
+    
     # Prepare Dataset and Dataloader
-    train_set = RelationalDataset(train_data, tokenizer, "train")
+    train_set = RelationalDataset(train_data, tokenizer, "train", args.max_length)
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         shuffle=True,
     )
 
-    dev_set = RelationalDataset(dev_data, tokenizer, "dev")
+    dev_set = RelationalDataset(dev_data, tokenizer, "dev", args.max_length)
     dev_loader = DataLoader(
         dev_set,
         batch_size=args.batch_size,
         shuffle=False,
     )
-    exit()
-    # Load model
-    model = model.to(device)
 
     # Training settings
     num_epoch = args.num_epoch
@@ -115,22 +107,32 @@ def main(args) -> None:
     gradient_accumulation_step = args.gradient_accumulation_step
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    '''
     update_step = (
         num_epoch * len(train_loader) // gradient_accumulation_step + num_epoch
     )
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 0.1 * update_step, update_step
     )
-
+    '''
+    
     # Start training
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
+    #step = 0
     for epoch in epoch_pbar:
         model.train()
-        for ID, q, r in train_loader:
-            print(ID, q)
-            break
-        scheduler.step()
-
+        for (q_r_seqs, q_ans, r_q_seqs, r_ans) in train_loader:
+            for a,b,c,d in zip(q_r_seqs, q_ans, r_q_seqs, r_ans):
+                a = a.to(device)
+                output = model(a)
+                print(output)
+                break
+        '''
+        if step % gradient_accumulation_step == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+            scheduler.step()
+        '''
 
 if __name__ == "__main__":
     args = get_args()
