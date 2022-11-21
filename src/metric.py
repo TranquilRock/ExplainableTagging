@@ -1,10 +1,11 @@
-import itertools
-from collections import defaultdict
+from nltk import tokenize
 from typing import List
 
 
 def lcs_length(s1: List[str], s2: List[str]) -> int:
-    """Standard LCS with DP from https://en.wikipedia.org/wiki/Longest_common_subsequence_problem"""
+    """Standard LCS with DP 
+    Source: https://en.wikipedia.org/wiki/Longest_common_subsequence_problem
+    """
     if len(s2) > len(s1):
         s1, s2 = s2, s1
     lcs = [[0] * (len(s2) + 1) for _ in range(2)]
@@ -17,7 +18,7 @@ def lcs_length(s1: List[str], s2: List[str]) -> int:
     return lcs[len(s1) % 2][len(s2)]
 
 
-def _concat_child(answer_list: List[List[str]]) -> List[List[str]]:
+def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
     """
     Originally the structure looks like
         [
@@ -33,23 +34,49 @@ def _concat_child(answer_list: List[List[str]]) -> List[List[str]]:
         tmp_entry = []
         for line in answer_list[i]:
             tmp_entry += line.split(' ')
-        qq[i] = tmp_entry
+        answer_list[i] = tmp_entry
     return answer_list
 
 
-def cal_score(qq_guess: List[str], rr_guess: List[str], qq: List[List[str]], rr: List[List[str]]) -> float:
+def cal_score(qq_guess: str, rr_guess: str, qq: List[str], rr: List[str]) -> float:
     """Calculate the score per id."""
-    assert len(qq) == len(rr) and "Length of qq and rr mismatch!!"
-    qq = _concat_child(qq)
-    rr = _concat_child(rr)
+
+    qq_guess = tokenize.word_tokenize(qq_guess)
+    rr_guess = tokenize.word_tokenize(rr_guess)
+
+    qq = [tokenize.word_tokenize(entry) for entry in qq]
+    rr = [tokenize.word_tokenize(entry) for entry in rr]
+
     ret = float('-inf')
     for qq_ans, rr_ans in zip(qq, rr):
         q_lcs = lcs_length(qq_guess, qq_ans)
         r_lcs = lcs_length(rr_guess, rr_ans)
-        ret = max((q_lcs) / (len(qq_ans) + len(qq_guess) - q_lcs) +
+        ret = max(ret,
+                  (q_lcs) / (len(qq_ans) + len(qq_guess) - q_lcs) +
                   (r_lcs) / (len(rr_ans) + len(rr_guess) - r_lcs))
     return ret
 
 
 if __name__ == "__main__":
-    cal_score('', '', [["1 2 3", "5 6 7"], ["c 8 7 6 3", "www www"], ], [['']])
+    print(cal_score('My guess for qq',
+                    'Another guess',
+                    [
+                        'My guess for qq'
+                    ],
+                    [
+                        'Another guess'
+                    ],
+                    ))
+    print(cal_score('My guess for qq',
+                    'Another guess',
+                    [
+                        "this is line1 in qq.",
+                        "Line2 here!!"
+                    ],
+                    [
+                        "C 8 7 6 3",
+                        "I want to starburst you.",
+                        "Can you guess who I am?",
+                        "Another guess:)"
+                    ],
+                    ))
