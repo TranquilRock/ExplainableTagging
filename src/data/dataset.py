@@ -17,17 +17,17 @@ class RelationalDataset(Dataset):
         mode: Literal["train", "dev", "test"],
         max_length: int,  
     ):
-        data = self._preprocess(data)
-        data = self._tokenize(data, tokenizer)
-        self.data = data
         self.mode = mode
         self.max_length = max_length
+        if self.mode == "train":
+            data = self._preprocess(data)
+        data = self._tokenize(data, tokenizer)
+        self.data = data
         
     def __len__(self) -> int:
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        
         q_r_seqs = []
         for q_ids in self.data[idx]['q']['input_ids']:
             r_max_length = self.max_length - 5 - len(q_ids)
@@ -59,9 +59,12 @@ class RelationalDataset(Dataset):
             padding_length = q_max_length - total_length
             r_q_seq = [CLS] + [RELEVANT if self.data[idx]['s'] else IRRELEVANT] + [SEP] + r_ids + [SEP] + qs + [SEP] + [0] * padding_length
             r_q_seqs.append(torch.tensor(r_q_seq))
-            
-        return q_r_seqs, self.data[idx]['q_ans'], r_q_seqs, self.data[idx]['r_ans'] 
 
+        if self.mode == 'train':
+            return q_r_seqs, self.data[idx]['q_ans'], r_q_seqs, self.data[idx]['r_ans'] 
+        else:
+            return self.data[idx]['id'], q_r_seqs, r_q_seqs
+            
     def _preprocess(self, data: List[Dict[str, Union[str, bool, List[str]]]]) -> List[Dict[str, Any]]:
         """Add answer field."""
         for entry in data:
@@ -83,10 +86,11 @@ class RelationalDataset(Dataset):
 
     def _tokenize(self, data: List[Dict[str, Any]], tokenizer: transformers.PreTrainedTokenizer) -> List[Dict[str, Any]]:
         for i, entry in enumerate(data):
+            if self.mode == 'train':
+                data[i]['qq'] = tokenizer(entry['qq'], add_special_tokens=False)
+                data[i]['rr'] = tokenizer(entry['rr'], add_special_tokens=False)
             data[i]['q'] = tokenizer(entry['q'], add_special_tokens=False)
             data[i]['r'] = tokenizer(entry['r'], add_special_tokens=False)
-            data[i]['qq'] = tokenizer(entry['qq'], add_special_tokens=False)
-            data[i]['rr'] = tokenizer(entry['rr'], add_special_tokens=False)
             
         return data
 
