@@ -89,17 +89,25 @@ def main(args) -> None:
     
     with torch.no_grad():
         ans = []
-        for idx, (test_id, q_r_seqs, r_q_seqs) in tqdm(enumerate(test_loader)):
+        for idx, (q, r_p, r, q_p, s) in tqdm(enumerate(test_loader)):
             ans_r = ""
             ans_q = ""
-            for i, (q_input, r_input)  in enumerate(zip(q_r_seqs, r_q_seqs)):
-                q_input, r_input = q_input.to(device), r_input.to(device)
-                output: torch.Tensor = model(q_input)
+            r_p, q_p, s = r_p[0].to(device), q_p[0].to(device), s[0].to(device)
+            q = q[0].to(device)
+            r = r[0].to(device)
+            
+            for i, q_input  in enumerate(q):
+                q_input = torch.unsqueeze(q_input, dim=0)
+                q_input = q_input.to(device)
+                output: torch.Tensor = model(q_input, r_p, s)
                 out = output[0]
                 if out[1] > out[0]:
                     ans_r = ans_r + " " + data[idx]['r'][i]
-                  
-                output: torch.Tensor = model(r_input)
+
+            for i, r_input in enumerate(r):
+                r_input = torch.unsqueeze(r_input, dim=0)
+                r_input = r_input.to(device)
+                output: torch.Tensor = model(r_input, q_p, s)
                 out = output[0]
                 if out[1] > out[0]:
                     ans_q = ans_q + " " +  data[idx]['q'][i]

@@ -4,11 +4,6 @@ import torch
 import transformers
 from torch.utils.data import Dataset
 
-CLS = 101
-SEP = 102
-RELEVANT = 1
-IRRELEVANT = 2
-
 class RelationalDataset(Dataset):
     def __init__(
         self,
@@ -28,42 +23,15 @@ class RelationalDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        q_r_seqs = []
-        for q_ids in self.data[idx]['q']['input_ids']:
-            r_max_length = self.max_length - 5 - len(q_ids)
-
-            total_length = 0
-            rs = []
-            for r_ids in self.data[idx]['r']['input_ids']:
-                if total_length + len(r_ids) > r_max_length:
-                    break
-                rs += r_ids
-                total_length += len(r_ids)
-
-            padding_length = r_max_length - total_length
-            q_r_seq = [CLS] + [RELEVANT if self.data[idx]['s'] else IRRELEVANT] + [SEP] + q_ids + [SEP] + rs + [SEP] + [0] * padding_length
-            q_r_seqs.append(torch.tensor(q_r_seq))
-        
-        r_q_seqs = []
-        for r_ids in self.data[idx]['r']['input_ids']:
-            q_max_length = self.max_length - 5 - len(r_ids)
-
-            total_length = 0
-            qs = []
-            for q_ids in self.data[idx]['q']['input_ids']:
-                if total_length + len(q_ids) > q_max_length:
-                    break
-                qs += q_ids
-                total_length += len(q_ids)
-
-            padding_length = q_max_length - total_length
-            r_q_seq = [CLS] + [RELEVANT if self.data[idx]['s'] else IRRELEVANT] + [SEP] + r_ids + [SEP] + qs + [SEP] + [0] * padding_length
-            r_q_seqs.append(torch.tensor(r_q_seq))
-
-        if self.mode == 'train':
-            return q_r_seqs, self.data[idx]['q_ans'], r_q_seqs, self.data[idx]['r_ans'] 
+        if self.data[idx]['s']:
+            s = torch.tensor([0])
         else:
-            return self.data[idx]['id'], q_r_seqs, r_q_seqs
+            s = torch.tensor([1])
+            
+        if self.mode == 'train':
+            return self.data[idx]['q'], self.data[idx]['r_p'], self.data[idx]['q_ans'], self.data[idx]['r'], self.data[idx]['q_p'], self.data[idx]['r_ans'], s
+        else:
+            return self.data[idx]['id'], self.data[idx]['q'], self.data[idx]['r_p'], self.data[idx]['r'], self.data[idx]['q_p'], s
             
     def _preprocess(self, data: List[Dict[str, Union[str, bool, List[str]]]]) -> List[Dict[str, Any]]:
         """Add answer field."""
@@ -86,11 +54,9 @@ class RelationalDataset(Dataset):
 
     def _tokenize(self, data: List[Dict[str, Any]], tokenizer: transformers.PreTrainedTokenizer) -> List[Dict[str, Any]]:
         for i, entry in enumerate(data):
-            if self.mode == 'train':
-                data[i]['qq'] = tokenizer(entry['qq'], add_special_tokens=False)
-                data[i]['rr'] = tokenizer(entry['rr'], add_special_tokens=False)
-            data[i]['q'] = tokenizer(entry['q'], add_special_tokens=False)
-            data[i]['r'] = tokenizer(entry['r'], add_special_tokens=False)
+            data[i]['q_p'] = tokenizer(' '.join(entry['q']), max_length=self.max_length, truncation=True, padding="max_length", return_tensors="pt").input_ids
+            data[i]['r_p'] = tokenizer(' '.join(entry['r']), max_length=self.max_length, truncation=True, padding="max_length", return_tensors="pt").input_ids
+            data[i]['q'] = tokenizer.batch_encode_plus(entry['q'], max_length=self.max_length, truncation=True, padding="max_length", return_tensors="pt").input_ids
+            data[i]['r'] = tokenizer.batch_encode_plus(entry['r'], max_length=self.max_length, truncation=True, padding="max_length", return_tensors="pt").input_ids
             
         return data
-
