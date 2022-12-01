@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from tqdm import trange, tqdm
 from transformers import (
-    RobertaTokenizerFast,
+    LongformerTokenizerFast,
     get_linear_schedule_with_warmup,
 )
 from data import RelationalDataset
@@ -35,16 +35,16 @@ def get_args() -> argparse.Namespace:
     # Data settings
     parser.add_argument(
         "--data_path", default="../data/data_v1.json", type=str)
-    parser.add_argument("--max_length", default=512, type=int)
+    parser.add_argument("--sentence_max_length", default=256, type=int)
+    parser.add_argument("--document_max_length", default=1024, type=int)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--pretrained", type=str,
-                        default="roberta-base")
+                        default="allenai/longformer-base-4096")
 
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=10)
-    parser.add_argument("--logging_step", type=int, default=100)
-    parser.add_argument("--gradient_accumulation_step", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=1e-6)
+    parser.add_argument("--gradient_accumulation_step", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=1e-5)
     
     # Model settings
     parser.add_argument("--num_classes", type=int, default=2)
@@ -63,13 +63,14 @@ def main(args) -> None:
         data = json.load(f)
 
     # Load tokenizer and model
-    tokenizer = RobertaTokenizerFast.from_pretrained(args.pretrained)
+    tokenizer = LongformerTokenizerFast.from_pretrained(args.pretrained)
     model = RelationalModel(args.pretrained, args.num_classes)
     model = model.to(device)
 
+    
     # Prepare Dataset and Dataloader
     train_set = RelationalDataset(
-        data, tokenizer, "train", args.max_length)
+        data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
@@ -78,7 +79,6 @@ def main(args) -> None:
 
     # Training settings
     num_epoch = args.num_epoch
-    logging_step = args.logging_step
     learning_rate = args.lr
     gradient_accumulation_step = args.gradient_accumulation_step
     criterion = torch.nn.BCELoss()
@@ -91,23 +91,22 @@ def main(args) -> None:
     # Start training
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     step = 0
-    logging_step = 32
-
+    logging_step = 128
+    
     for epoch in epoch_pbar:
         model.train()
         total_loss = 0
-        for (q, r_p, q_ans, r, q_p, r_ans, s) in tqdm(train_loader):
-            r_p, q_p, s = r_p[0].to(device), q_p[0].to(device), s[0].to(device)
-            q, q_ans = q[0].to(device), q_ans[0].to(device)
-            r, r_ans = r[0].to(device), r_ans[0].to(device)
-            
-            for q_input, q_label in zip(q, q_ans):
-                q_input = torch.unsqueeze(q_input, dim=0)
-                output: torch.Tensor = model(q_input, r_p, s)
+        for (q_and_r_p_list, q_ans, r_and_q_p_list, r_ans) in tqdm(train_loader):         
+            for q_input, q_label in zip(q_and_r_p_list, q_ans):
+                q_input = q_input.to(device)
+                q_label = q_label.to(device)
+                output: torch.Tensor = model(q_input)
                 loss = criterion(output, label1 if q_label else label2)
                 total_loss += loss.item()
-                loss.backward()
-                step += 1 
+                normalized_loss = loss / gradient_accumulation_step
+                normalized_loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+                step += 1
                 if step % gradient_accumulation_step == 0:
                     optimizer.step()
                     optimizer.zero_grad()
@@ -116,12 +115,15 @@ def main(args) -> None:
                                                                      args.num_epoch, total_loss / 2 / logging_step))
                     total_loss = 0
 
-            for r_input, r_label in zip(r, r_ans):
-                r_input = torch.unsqueeze(r_input, dim=0)
-                output: torch.Tensor = model(r_input, q_p, s)
+            for r_input, r_label in zip(r_and_q_p_list, r_ans):
+                r_input = r_input.to(device)
+                r_label = r_label.to(device)
+                output: torch.Tensor = model(r_input)
                 loss = criterion(output, label1 if r_label else label2)
                 total_loss += loss.item()
-                loss.backward()
+                normalized_loss = loss / gradient_accumulation_step
+                normalized_loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
                 step += 1 
                 if step % gradient_accumulation_step == 0:
                     optimizer.step()
@@ -131,7 +133,7 @@ def main(args) -> None:
                                                                      args.num_epoch, total_loss / 2 / logging_step))
                     total_loss = 0
                            
-        torch.save(model.state_dict(), "robertaaa.ckpt")
+        torch.save(model.state_dict(), "robertalong.ckpt")
 
         
         
