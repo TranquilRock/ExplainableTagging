@@ -92,7 +92,7 @@ def main(args) -> None:
             inputs = inputs.to(device)
             outputs: torch.Tensor = model(inputs)
             for pid, split, output, sentence in zip(pids, splits, outputs, sentences):
-                if output[1] > output[0]:
+                if output[0] > output[1]:
                     if pid not in all_ans:
                         ans = defaultdict()
                         ans[split] = sentence
