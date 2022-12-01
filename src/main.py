@@ -1,18 +1,19 @@
+"""Main"""
 import argparse
+import json
 
 import torch
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
-from tqdm import trange, tqdm
-from transformers import (
-    LongformerTokenizerFast,
-    get_linear_schedule_with_warmup,
-)
-from data import LongformerDatasetV1
+from tqdm import tqdm, trange
+from transformers import LongformerTokenizerFast
+
+from data import LongformerDatasetV1, LongformerDatasetV2
+from model import LongformerRelationModel
 from utils import set_seed
-import json
-from model import RelationalModel
+
+# from transformers import get_linear_schedule_with_warmup
 
 
 def get_args() -> argparse.Namespace:
@@ -55,16 +56,17 @@ def get_args() -> argparse.Namespace:
 
 
 def main(args) -> None:
+    """main entry"""
     set_seed(args.seed)
     device = args.device
 
     # Get data
-    with open(args.data_path, newline="") as f:
+    with open(args.data_path, newline="", encoding='utf-8') as f:
         data = json.load(f)
 
     # Load tokenizer and model
     tokenizer = LongformerTokenizerFast.from_pretrained(args.pretrained)
-    model = RelationalModel(args.pretrained, args.num_classes)
+    model = LongformerRelationModel(args.pretrained, args.num_classes)
     model = model.to(device)
 
     # Prepare Dataset and Dataloader
@@ -85,10 +87,11 @@ def main(args) -> None:
 
     label1 = torch.concat([torch.ones((args.batch_size, 1)),
                            torch.zeros((args.batch_size, 1))], dim=1).to(device)
-    label2 = torch.concat([torch.zeros((args.batch_size, 1)),
+    label2 = torch.concat([torch.zeros((args.batch_size, 1)), 
                            torch.ones((args.batch_size, 1))], dim=1).to(device)
+    
     # Start training
-    epoch_pbar = trange(args.num_epoch, desc="Epoch")
+    epoch_pbar = trange(num_epoch, desc="Epoch")
     step = 0
     logging_step = 128
 
@@ -110,8 +113,8 @@ def main(args) -> None:
                     optimizer.step()
                     optimizer.zero_grad()
                 if step % logging_step == 0:
-                    tqdm.write("Epoch: [{}/{}], Loss: {:.6f}".format(epoch,
-                                                                     args.num_epoch, total_loss / 2 / logging_step))
+                    tqdm.write(
+                        f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
                     total_loss = 0
 
             for r_input, r_label in zip(r_and_q_p_list, r_ans):
@@ -128,13 +131,72 @@ def main(args) -> None:
                     optimizer.step()
                     optimizer.zero_grad()
                 if step % logging_step == 0:
-                    tqdm.write("Epoch: [{}/{}], Loss: {:.6f}".format(epoch,
-                                                                     args.num_epoch, total_loss / 2 / logging_step))
+                    tqdm.write(
+                        f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
                     total_loss = 0
 
         torch.save(model.state_dict(), "robertalong.ckpt")
 
 
+def main_v2(args) -> None:
+    """Experimental dataset on LongformerDatasetV2"""
+    set_seed(args.seed)
+    device = args.device
+
+    # Get data
+    with open(args.data_path, newline="", encoding='utf-8') as f:
+        data = json.load(f)
+
+    # Load tokenizer and model
+    tokenizer = LongformerTokenizerFast.from_pretrained(args.pretrained)
+    model = LongformerRelationModel(args.pretrained, args.num_classes)
+    model = model.to(device)
+
+    # Prepare Dataset and Dataloader
+    train_set = LongformerDatasetV2(
+        data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
+    train_loader = DataLoader(
+        train_set,
+        batch_size=args.batch_size,
+        shuffle=True,
+    )
+
+    # Training settings
+    num_epoch = args.num_epoch
+    learning_rate = args.lr
+    gradient_accumulation_step = args.gradient_accumulation_step
+    criterion = torch.nn.BCELoss()
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+
+    # Start training
+    epoch_pbar = trange(num_epoch, desc="Epoch")
+    step = 0
+    logging_step = 128
+
+    for epoch in epoch_pbar:
+        model.train()
+        total_loss = 0
+        for inputs, labels in tqdm(train_loader):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            output: torch.Tensor = model(inputs)
+            loss = criterion(output, labels)
+            total_loss += loss.item()
+            normalized_loss = loss / gradient_accumulation_step
+            normalized_loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+            step += 1
+            if step % gradient_accumulation_step == 0:
+                optimizer.step()
+                optimizer.zero_grad()
+            if step % logging_step == 0:
+                tqdm.write(
+                    f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
+                total_loss = 0
+
+        torch.save(model.state_dict(), "robertalong.ckpt")
+
+
 if __name__ == "__main__":
-    args = get_args()
-    main(args)
+    # main(get_args())
+    main_v2(get_args())

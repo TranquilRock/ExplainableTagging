@@ -1,12 +1,14 @@
+"""Models for relation task."""
 from transformers import LongformerModel
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
-class RelationalModel(nn.Module):
+class LongformerRelationModel(nn.Module):
+    """Relational model based on Longformer."""
+
     def __init__(self, pretrained_name, num_classes=2, **kwargs):
-        super(RelationalModel, self).__init__()
+        super(LongformerRelationModel, self).__init__()
 
         self.upstream = LongformerModel.from_pretrained(pretrained_name)
 
@@ -16,7 +18,7 @@ class RelationalModel(nn.Module):
 
         self.last = nn.Sigmoid()
 
-    def forward(self, tokens):
+    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         features = self.upstream(tokens, output_hidden_states=True)
         features = features.hidden_states[-1][:, 0, :]
 

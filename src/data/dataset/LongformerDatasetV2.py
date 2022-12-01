@@ -1,5 +1,5 @@
 """Construct dataset from process_raw.jsonv2()."""
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import Any, Dict, List, Literal, Tuple
 
 import torch
 import transformers
@@ -16,6 +16,7 @@ PAD = config.pad_token_id
 
 class LongformerDatasetV2(Dataset):
     """Input should be data-v2"""
+
     def __init__(
         self,
         raw: Dict[str, Any],
@@ -49,34 +50,34 @@ class LongformerDatasetV2(Dataset):
         ret += [PAD] * (self.max_length - len(ret))
         ret = torch.tensor(ret)
 
-        return ret, is_ans
+        return ret, torch.FloatTensor([1, 0]) if is_ans else torch.FloatTensor([0, 1])
 
     def _preprocess(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Append answer field."""
         data_list = []
-        for k in data.keys():
+        for key in data.keys():
             if self.mode == "train":
-                for i, q in enumerate(data[k]['q']):
+                for i, q in enumerate(data[key]['q']):
                     in_ans = False
-                    for qq in data[k]['qq']:  # Check if marked by anyone.
+                    for qq in data[key]['qq']:  # Check if marked by anyone.
                         if qq in q:
                             in_ans = True
                             break
-                    data_list.append((data[k]['id'], 'q', i, in_ans))
-                for i, r in enumerate(data[k]['r']):
+                    data_list.append((key, 'q', i, in_ans))
+                for i, r in enumerate(data[key]['r']):
                     in_ans = False
-                    for rr in data[k]['rr']:
+                    for rr in data[key]['rr']:
                         if rr in r:
                             in_ans = True
                             break
-                    data_list.append((data[k]['id'], 'r', i, in_ans))
-                del data[k]['qq']
-                del data[k]['rr']
+                    data_list.append((key, 'r', i, in_ans))
+                del data[key]['qq']
+                del data[key]['rr']
             else:
-                for i, q in enumerate(data[k]['q']):
-                    data_list.append((data[k]['id'], 'q', i, False))
-                for i, r in enumerate(data[k]['r']):
-                    data_list.append((data[k]['id'], 'r', i, False))
+                for i, q in enumerate(data[key]['q']):
+                    data_list.append((key, 'q', i, False))
+                for i, r in enumerate(data[key]['r']):
+                    data_list.append((key, 'r', i, False))
         return data_list
 
     def _tokenize(self,

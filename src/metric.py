@@ -1,3 +1,4 @@
+"""For score calculation"""
 from nltk import tokenize
 from typing import List
 

@@ -1,7 +1,8 @@
+"""Helper functions."""
 import random
+from typing import List
 
 import torch
-from typing import List
 
 
 def set_seed(seed: int) -> None:

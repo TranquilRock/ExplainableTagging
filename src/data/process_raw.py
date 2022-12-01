@@ -24,7 +24,7 @@ def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]
             }, ]
     """
     data = []
-    with open(data_path, newline="") as f:
+    with open(data_path, newline="", encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
             id = int(row["id"])
@@ -82,10 +82,10 @@ def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
         }
     """
     data = {}
-    with open(data_path, newline="") as f:
+    with open(data_path, newline="", encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in tqdm(reader):
-            id = row["id"]
+            pid = row["id"]
             s = row["s"] == 'AGREE'
             q = row["q"].strip('"').split(' .')
             q = [line.strip(' ') + ' .' for line in q if line != '']
@@ -95,17 +95,17 @@ def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
             qq = [line.strip(' ') for line in qq if line != '']
             rr = row["r'"].strip('"').split(' .')
             rr = [line.strip(' ') for line in rr if line != '']
-            if id not in data:
-                data[id] = {
+            if pid not in data:
+                data[pid] = {
                     "q": q,
                     "r": r,
                     "s": s,
                     'qq': [],
                     'rr': []
                 }
-            assert data[id]['s'] == s and "Same id with different s!!"
-            data[id]['qq'] += qq
-            data[id]['rr'] += rr
+            assert data[pid]['s'] == s and "Same id with different s!!"
+            data[pid]['qq'] += qq
+            data[pid]['rr'] += rr
     return data
 
 
@@ -124,10 +124,10 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
            }
     """
     data = {}
-    with open(data_path, newline="") as f:
+    with open(data_path, newline="", encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
-            id, q, r, s, qq, rr = (
+            pid, q, r, s, qq, rr = (
                 row["id"],
                 row["q"],
                 row["r"],
@@ -135,41 +135,23 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
                 row["q'"],
                 row["r'"],
             )
-            if id not in data:
-                data[id] = {
+            if pid not in data:
+                data[pid] = {
                     "q": q,
                     "r": r,
                     "s": s,
                     "qq": [],
                     "rr": [],
                 }
-            data[id]["qq"].append(qq)
-            data[id]["rr"].append(rr)
+            data[pid]["qq"].append(qq)
+            data[pid]["rr"].append(rr)
     return data
 
 
 if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
-    with open(f"{DATA_ROOT}/data_v2.json", "w") as f:
-        data = flatten_raw(f"{DATA_ROOT}/raw.csv")
+    with open(f"{DATA_ROOT}/data_v2.json", "w", encoding='utf-8') as f:
+        data_to_json = flatten_raw(f"{DATA_ROOT}/raw.csv")
         print("Write back....")
-        json.dump(data, f, indent=4)
+        json.dump(data_to_json, f, indent=4)
         print("Done")
-"""
-
-
-data: Dict[str, Dict[str, Any]]
-    = {
-        'id': {
-                'q': str,
-                'r': str,
-                's': bool,
-                ('qq', 'rr'): List[Tuple[List[str], List[str]]],
-            },
-        }
-L = 0
-for k, v in data.items():
-    for q, r, s, pair in data[k]:
-        for qq, rr in pair:
-            L += len(qq) + len(rr)
-"""

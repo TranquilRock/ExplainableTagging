@@ -1,3 +1,4 @@
+"""TODO"""
 import argparse
 
 import torch
@@ -13,7 +14,7 @@ from transformers import (
 from data import LongformerDatasetV1
 from utils import set_seed
 import json
-from model import RelationalModel
+from model import LongformerRelationModel
 
 import copy
 import csv
@@ -75,8 +76,8 @@ def main(args) -> None:
         args.sentence_pretrained)
     document_tokenizer = LongformerTokenizerFast.from_pretrained(
         args.document_pretrained)
-    model = RelationalModel(args.sentence_pretrained,
-                            args.document_pretrained, args.num_classes)
+    model = LongformerRelationModel(args.sentence_pretrained,
+                                    args.document_pretrained, args.num_classes)
 
     ckpt = torch.load(args.ckpt_path)
     model.load_state_dict(ckpt)
