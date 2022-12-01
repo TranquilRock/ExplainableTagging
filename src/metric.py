@@ -4,7 +4,7 @@ from typing import List
 
 
 def lcs_length(s1: List[str], s2: List[str]) -> int:
-    """Standard LCS with DP 
+    """Standard LCS with DP
     Source: https://en.wikipedia.org/wiki/Longest_common_subsequence_problem
     """
     if len(s2) > len(s1):

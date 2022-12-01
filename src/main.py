@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm, trange
 from transformers import LongformerTokenizerFast
 
-from data import LongformerDatasetV1, LongformerDatasetV2
+from data import LongformerDataset
 from model import LongformerRelationModel
 from utils import set_seed
 
@@ -44,6 +44,7 @@ def get_args() -> argparse.Namespace:
 
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=10)
+    parser.add_argument("--logging_step", type=int, default=128)
     parser.add_argument("--gradient_accumulation_step", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-5)
 
@@ -56,89 +57,6 @@ def get_args() -> argparse.Namespace:
 
 
 def main(args) -> None:
-    """main entry"""
-    set_seed(args.seed)
-    device = args.device
-
-    # Get data
-    with open(args.data_path, newline="", encoding='utf-8') as f:
-        data = json.load(f)
-
-    # Load tokenizer and model
-    tokenizer = LongformerTokenizerFast.from_pretrained(args.pretrained)
-    model = LongformerRelationModel(args.pretrained, args.num_classes)
-    model = model.to(device)
-
-    # Prepare Dataset and Dataloader
-    train_set = LongformerDatasetV1(
-        data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
-    train_loader = DataLoader(
-        train_set,
-        batch_size=args.batch_size,
-        shuffle=True,
-    )
-
-    # Training settings
-    num_epoch = args.num_epoch
-    learning_rate = args.lr
-    gradient_accumulation_step = args.gradient_accumulation_step
-    criterion = torch.nn.BCELoss()
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
-
-    label1 = torch.concat([torch.ones((args.batch_size, 1)),
-                           torch.zeros((args.batch_size, 1))], dim=1).to(device)
-    label2 = torch.concat([torch.zeros((args.batch_size, 1)), 
-                           torch.ones((args.batch_size, 1))], dim=1).to(device)
-    
-    # Start training
-    epoch_pbar = trange(num_epoch, desc="Epoch")
-    step = 0
-    logging_step = 128
-
-    for epoch in epoch_pbar:
-        model.train()
-        total_loss = 0
-        for (q_and_r_p_list, q_ans, r_and_q_p_list, r_ans) in tqdm(train_loader):
-            for q_input, q_label in zip(q_and_r_p_list, q_ans):
-                q_input = q_input.to(device)
-                q_label = q_label.to(device)
-                output: torch.Tensor = model(q_input)
-                loss = criterion(output, label1 if q_label else label2)
-                total_loss += loss.item()
-                normalized_loss = loss / gradient_accumulation_step
-                normalized_loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-                step += 1
-                if step % gradient_accumulation_step == 0:
-                    optimizer.step()
-                    optimizer.zero_grad()
-                if step % logging_step == 0:
-                    tqdm.write(
-                        f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
-                    total_loss = 0
-
-            for r_input, r_label in zip(r_and_q_p_list, r_ans):
-                r_input = r_input.to(device)
-                r_label = r_label.to(device)
-                output: torch.Tensor = model(r_input)
-                loss = criterion(output, label1 if r_label else label2)
-                total_loss += loss.item()
-                normalized_loss = loss / gradient_accumulation_step
-                normalized_loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-                step += 1
-                if step % gradient_accumulation_step == 0:
-                    optimizer.step()
-                    optimizer.zero_grad()
-                if step % logging_step == 0:
-                    tqdm.write(
-                        f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
-                    total_loss = 0
-
-        torch.save(model.state_dict(), "robertalong.ckpt")
-
-
-def main_v2(args) -> None:
     """Experimental dataset on LongformerDatasetV2"""
     set_seed(args.seed)
     device = args.device
@@ -153,7 +71,7 @@ def main_v2(args) -> None:
     model = model.to(device)
 
     # Prepare Dataset and Dataloader
-    train_set = LongformerDatasetV2(
+    train_set = LongformerDataset(
         data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
     train_loader = DataLoader(
         train_set,
@@ -162,6 +80,7 @@ def main_v2(args) -> None:
     )
 
     # Training settings
+    logging_step = args.logging_step
     num_epoch = args.num_epoch
     learning_rate = args.lr
     gradient_accumulation_step = args.gradient_accumulation_step
@@ -170,13 +89,11 @@ def main_v2(args) -> None:
 
     # Start training
     epoch_pbar = trange(num_epoch, desc="Epoch")
-    step = 0
-    logging_step = 128
 
     for epoch in epoch_pbar:
         model.train()
         total_loss = 0
-        for inputs, labels in tqdm(train_loader):
+        for step, inputs, labels in enumerate(tqdm(train_loader)):
             inputs = inputs.to(device)
             labels = labels.to(device)
             output: torch.Tensor = model(inputs)
@@ -185,18 +102,15 @@ def main_v2(args) -> None:
             normalized_loss = loss / gradient_accumulation_step
             normalized_loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-            step += 1
-            if step % gradient_accumulation_step == 0:
+            if (step + 1) % gradient_accumulation_step == 0:
                 optimizer.step()
                 optimizer.zero_grad()
-            if step % logging_step == 0:
+            if (step + 1) % logging_step == 0:
                 tqdm.write(
-                    f"Epoch: [{epoch}/{args.num_epoch}], Loss: {total_loss / 2 / logging_step:.6f}")
+                    f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / logging_step:.6f}")
                 total_loss = 0
-
         torch.save(model.state_dict(), "robertalong.ckpt")
 
 
 if __name__ == "__main__":
-    # main(get_args())
-    main_v2(get_args())
+    main(get_args())

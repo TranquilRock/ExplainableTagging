@@ -8,7 +8,7 @@ import csv
 from tqdm import tqdm
 
 
-def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
+def data_v1(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
     data = [{
             'id': 8,
@@ -27,7 +27,7 @@ def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]
     with open(data_path, newline="", encoding='utf-8') as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
-            id = int(row["id"])
+            pid = int(row["id"])
             s = row["s"] == 'AGREE'
             q = row["q"].strip('"').split(' .')
             q = [line.strip(' ') + ' .' for line in q if line != '']
@@ -38,7 +38,7 @@ def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]
             rr = row["r'"].strip('"').split(' .')
             rr = [line.strip(' ') for line in rr if line != '']
             data.append({
-                "id": id,
+                "id": pid,
                 "q": q,
                 "r": r,
                 "s": s,
@@ -48,7 +48,7 @@ def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]
     return data
 
 
-def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
+def data_v2(data_path: str, is_test: bool = False) -> Dict[str, Dict[str, Any]]:
     """Result looks like:
         {
             "8": {
@@ -86,15 +86,11 @@ def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
         reader = csv.DictReader(f, delimiter=",")
         for row in tqdm(reader):
             pid = row["id"]
-            s = row["s"] == 'AGREE'
+            s = (row["s"] == 'AGREE') if 's' in row else False
             q = row["q"].strip('"').split(' .')
             q = [line.strip(' ') + ' .' for line in q if line != '']
             r = row["r"].strip('"').split(' .')
             r = [line.strip(' ') + ' .' for line in r if line != '']
-            qq = row["q'"].strip('"').split(' .')
-            qq = [line.strip(' ') for line in qq if line != '']
-            rr = row["r'"].strip('"').split(' .')
-            rr = [line.strip(' ') for line in rr if line != '']
             if pid not in data:
                 data[pid] = {
                     "q": q,
@@ -103,7 +99,14 @@ def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
                     'qq': [],
                     'rr': []
                 }
+            if is_test:
+                continue
             assert data[pid]['s'] == s and "Same id with different s!!"
+            qq = row["q'"].strip('"').split(' .')
+            qq = [line.strip(' ') for line in qq if line != '']
+            rr = row["r'"].strip('"').split(' .')
+            rr = [line.strip(' ') for line in rr if line != '']
+
             data[pid]['qq'] += qq
             data[pid]['rr'] += rr
     return data
@@ -151,7 +154,7 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
 if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
     with open(f"{DATA_ROOT}/data_v2.json", "w", encoding='utf-8') as f:
-        data_to_json = flatten_raw(f"{DATA_ROOT}/raw.csv")
+        data_to_json = data_v2(f"{DATA_ROOT}/raw.csv")
         print("Write back....")
         json.dump(data_to_json, f, indent=4)
         print("Done")

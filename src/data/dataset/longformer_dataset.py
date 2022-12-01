@@ -14,7 +14,7 @@ SEP = config.sep_token_id
 PAD = config.pad_token_id
 
 
-class LongformerDatasetV2(Dataset):
+class LongformerDataset(Dataset):
     """Input should be data-v2"""
 
     def __init__(
