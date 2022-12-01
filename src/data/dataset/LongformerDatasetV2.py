@@ -90,7 +90,7 @@ class LongformerDatasetV2(Dataset):
                 data[k]['q']), max_length=self.document_max_length, truncation=True).input_ids[1:]
             # Encode r as paragraph and skip first CLS
             data[k]['rp'] = tokenizer(' '.join(
-                data[k]['r']), max_length=self.document_max_length, truncation=True).input_ids
+                data[k]['r']), max_length=self.document_max_length, truncation=True).input_ids[1:]
             data[k]['q'] = tokenizer.batch_encode_plus(
                 data[k]['q'], max_length=self.sentence_max_length, truncation=True).input_ids
             data[k]['r'] = tokenizer.batch_encode_plus(
