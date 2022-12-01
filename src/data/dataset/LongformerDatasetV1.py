@@ -14,10 +14,10 @@ SEP = config.sep_token_id
 PAD = config.pad_token_id
 
 
-class LongformerDataset(Dataset):
+class LongformerDatasetV1(Dataset):
     def __init__(
         self,
-        data: Dict[str, List[Dict[str, str]]],
+        data: List[Dict[str, Any]],
         tokenizer: transformers.PreTrainedTokenizer,
         mode: Literal["train", "dev", "test"],
         sentence_max_length: int,
@@ -41,22 +41,24 @@ class LongformerDataset(Dataset):
 
         q_and_r_p_list = []
         for q in self.data[idx]['q']:
-            if self.data[idx]['s']:  # already contain SEP in tokens
-                q_and_r_p = q + \
-                    self.agree_token[1:] + self.data[idx]['r_p'][1:]
+            q_and_r_p = q
+            if self.data[idx]['s']:  # Already contain SEP in tokens
+                q_and_r_p += self.agree_token[1:]  # Skips the first CLS tag
             else:
-                q_and_r_p = q + \
-                    self.disagree_token[1:] + self.data[idx]['r_p'][1:]
+                q_and_r_p += self.disagree_token[1:]
+            q_and_r_p += self.data[idx]['r_p'][1:]
             padding = [PAD] * (self.max_length - len(q_and_r_p))
             q_and_r_p = q_and_r_p + padding
             q_and_r_p_list.append(torch.tensor(q_and_r_p))
 
         r_and_q_p_list = []
         for r in self.data[idx]['r']:
-            r_and_q_p = r \
-                + (self.agree_token[1:] if self.data[idx]['s']
-                   else self.disagree_token[1:]) \
-                + self.data[idx]['q_p'][1:]  # Skip the first CLS tag
+            r_and_q_p = r
+            if self.data[idx]['s']:
+                r_and_q_p += self.agree_token[1:]
+            else:
+                r_and_q_p += self.disagree_token[1:]
+            r_and_q_p += self.data[idx]['q_p'][1:]
             padding = [PAD] * (self.max_length - len(r_and_q_p))
             r_and_q_p = r_and_q_p + padding
             r_and_q_p_list.append(torch.tensor(r_and_q_p))

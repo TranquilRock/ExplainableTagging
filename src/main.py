@@ -9,7 +9,7 @@ from transformers import (
     LongformerTokenizerFast,
     get_linear_schedule_with_warmup,
 )
-from data import LongformerDataset
+from data import LongformerDatasetV1
 from utils import set_seed
 import json
 from model import RelationalModel
@@ -68,7 +68,7 @@ def main(args) -> None:
     model = model.to(device)
 
     # Prepare Dataset and Dataloader
-    train_set = LongformerDataset(
+    train_set = LongformerDatasetV1(
         data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
     train_loader = DataLoader(
         train_set,

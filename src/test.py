@@ -10,7 +10,7 @@ from transformers import (
     LongformerTokenizerFast,
     get_linear_schedule_with_warmup,
 )
-from data import LongformerDataset
+from data import LongformerDatasetV1
 from utils import set_seed
 import json
 from model import RelationalModel
@@ -84,7 +84,7 @@ def main(args) -> None:
     model.eval()
 
     test_data = copy.deepcopy(data)
-    test_set = LongformerDataset(
+    test_set = LongformerDatasetV1(
         test_data, sentence_tokenizer, document_tokenizer, "test",
         args.sentence_max_length, args.document_max_length)
     test_loader = DataLoader(

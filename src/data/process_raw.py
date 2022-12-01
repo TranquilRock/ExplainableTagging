@@ -5,13 +5,18 @@ from typing import List, Dict, Union, Any
 import json
 
 import csv
+from tqdm import tqdm
 
 
-def json_from_raw_v2(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
+def json_from_raw(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
     data = [{
             'id': 8,
-            'q': ['It can go both ways .', 'We all doubt .', 'It is what you do with it that matters .'],
+            'q': [
+                'It can go both ways .', 
+                'We all doubt .', 
+                'It is what you do with it that matters .'
+            ],
             'r': ['True .'],
             's': True,
             'qq': ['It can go both ways', 'We all doubt', 'It is what you do with it that matters'],
@@ -44,44 +49,64 @@ def json_from_raw_v2(data_path: str) -> List[Dict[str, Union[int, bool, List[str
 
 
 def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
-    """Reads from data_path
-    data: Dict[str, Dict[str, Any]]
-        = {
-            '0': {
-                    'q': str,
-                    'r': str,
-                    's': bool,
-                    'qq': List[str],
-                    'rr': List[str],
-                 },
-            ...
-           }
+    """Result looks like:
+        {
+            "8": {
+                "q": [
+                    "It can go both ways .",
+                    "We all doubt .",
+                    "It is what you do with it that matters ."
+                ],
+                "r": [
+                    "True ."
+                ],
+                "s": true,
+                "qq": [
+                    "It can go both ways",
+                    "We all doubt",
+                    "It is what you do with it that matters",
+                    "can go both ways",
+                    "We all doubt",
+                    "It is what you do with it that matters",
+                    "It can go both ways",
+                    "We all doubt",
+                    "It is what you do with it that matters"
+                ],
+                "rr": [
+                    "True",
+                    "True",
+                    "True"
+                ]
+            },
+            # ...
+        }
     """
-    id_map = {}
-    data = []
+    data = {}
     with open(data_path, newline="") as f:
         reader = csv.DictReader(f, delimiter=",")
-        for row in reader:
-            id, q, r, s, qq, rr = (
-                row["id"],
-                row["q"],
-                row["r"],
-                row["s"],
-                row["q'"],
-                row["r'"],
-            )
-            if id not in id_map:
-                id_map[id] = {
+        for row in tqdm(reader):
+            id = row["id"]
+            s = row["s"] == 'AGREE'
+            q = row["q"].strip('"').split(' .')
+            q = [line.strip(' ') + ' .' for line in q if line != '']
+            r = row["r"].strip('"').split(' .')
+            r = [line.strip(' ') + ' .' for line in r if line != '']
+            qq = row["q'"].strip('"').split(' .')
+            qq = [line.strip(' ') for line in qq if line != '']
+            rr = row["r'"].strip('"').split(' .')
+            rr = [line.strip(' ') for line in rr if line != '']
+            if id not in data:
+                data[id] = {
                     "q": q,
                     "r": r,
-                    "s": s
+                    "s": s,
+                    'qq': [],
+                    'rr': []
                 }
-
-            for _qq in qq:
-                data.append({'id': id, 'q_relevant': _qq})
-            for _rr in rr:
-                data.append({'id': id, 'r_relevant': _rr})
-    return [id_map, data]
+            assert data[id]['s'] == s and "Same id with different s!!"
+            data[id]['qq'] += qq
+            data[id]['rr'] += rr
+    return data
 
 
 def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
@@ -124,12 +149,15 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
 
 
 if __name__ == "__main__":
-    with open("/tmp2/b08902011/ExplainableTagging/data/data_v2.json", "w") as f:
-        # json.dump(json_from_raw_v2(
-        #     "/tmp2/b08902011/ExplainableTagging/data/raw.csv"), f, indent=4)
-        json.dump(flatten_raw(
-            "/tmp2/b08902011/ExplainableTagging/data/raw.csv"), f, indent=4)
+    DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
+    with open(f"{DATA_ROOT}/data_v2.json", "w") as f:
+        data = flatten_raw(f"{DATA_ROOT}/raw.csv")
+        print("Write back....")
+        json.dump(data, f, indent=4)
+        print("Done")
 """
+
+
 data: Dict[str, Dict[str, Any]]
     = {
         'id': {
