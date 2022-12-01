@@ -1,10 +1,13 @@
+"""Data utility to process raw data into proper form.
+This file shall not be used directly.
+"""
 from typing import List, Dict, Union, Any
 import json
 
 import csv
 
 
-def json_from_raw_v2(data_path: str = "/tmp2/b08902011/ExplainableTagging/data/raw.csv") -> List[Dict[str, Union[int, bool, List[str]]]]:
+def json_from_raw_v2(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
     data = [{
             'id': 8,
@@ -40,7 +43,7 @@ def json_from_raw_v2(data_path: str = "/tmp2/b08902011/ExplainableTagging/data/r
     return data
 
 
-def dict_from_raw(data_path: str = "../../data/data.csv") -> Dict[str, Dict[str, Any]]:
+def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
     """Reads from data_path
     data: Dict[str, Dict[str, Any]]
         = {
@@ -81,4 +84,21 @@ def dict_from_raw(data_path: str = "../../data/data.csv") -> Dict[str, Dict[str,
 
 if __name__ == "__main__":
     with open("/tmp2/b08902011/ExplainableTagging/data/data_v1.json", "w") as f:
-        json.dump(json_from_raw_v2(), f, indent=4)
+        json.dump(json_from_raw_v2(
+            "/tmp2/b08902011/ExplainableTagging/data/raw.csv"), f, indent=4)
+"""
+data: Dict[str, Dict[str, Any]]
+    = {
+        'id': {
+                'q': str,
+                'r': str,
+                's': bool,
+                ('qq', 'rr'): List[Tuple[List[str], List[str]]],
+            },
+        }
+L = 0
+for k, v in data.items():
+    for q, r, s, pair in data[k]:
+        for qq, rr in pair:
+            L += len(qq) + len(rr)
+"""

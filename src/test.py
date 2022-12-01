@@ -10,13 +10,14 @@ from transformers import (
     LongformerTokenizerFast,
     get_linear_schedule_with_warmup,
 )
-from data import RelationalDataset
+from data import LongformerDataset
 from utils import set_seed
 import json
 from model import RelationalModel
 
 import copy
 import csv
+
 
 def get_args() -> argparse.Namespace:
     """
@@ -70,17 +71,20 @@ def main(args) -> None:
         data = json.load(f)
 
     # Load tokenizer and model
-    sentence_tokenizer = RobertaTokenizerFast.from_pretrained(args.sentence_pretrained)
-    document_tokenizer = LongformerTokenizerFast.from_pretrained(args.document_pretrained)
-    model = RelationalModel(args.sentence_pretrained, args.document_pretrained, args.num_classes)
-    
+    sentence_tokenizer = RobertaTokenizerFast.from_pretrained(
+        args.sentence_pretrained)
+    document_tokenizer = LongformerTokenizerFast.from_pretrained(
+        args.document_pretrained)
+    model = RelationalModel(args.sentence_pretrained,
+                            args.document_pretrained, args.num_classes)
+
     ckpt = torch.load(args.ckpt_path)
     model.load_state_dict(ckpt)
     model = model.to(device)
     model.eval()
 
     test_data = copy.deepcopy(data)
-    test_set = RelationalDataset(
+    test_set = LongformerDataset(
         test_data, sentence_tokenizer, document_tokenizer, "test",
         args.sentence_max_length, args.document_max_length)
     test_loader = DataLoader(
@@ -88,9 +92,9 @@ def main(args) -> None:
         batch_size=args.batch_size,
         shuffle=False,
     )
-    
+
     model.eval()
-    
+
     with torch.no_grad():
         ans = []
         for idx, (test_id, q, r_p, r, q_p, s) in tqdm(enumerate(test_loader)):
@@ -101,7 +105,7 @@ def main(args) -> None:
             r = r[0].to(device)
 
             out_list_0 = []
-            for i, q_input  in enumerate(q):
+            for i, q_input in enumerate(q):
                 q_input = torch.unsqueeze(q_input, dim=0)
                 q_input = q_input.to(device)
                 output: torch.Tensor = model(q_input, r_p, s)
@@ -120,21 +124,22 @@ def main(args) -> None:
                 output: torch.Tensor = model(r_input, q_p, s)
                 out = output[0]
                 if out[0] > out[1]:
-                    ans_r = ans_r + " " +  data[idx]['r'][i]
+                    ans_r = ans_r + " " + data[idx]['r'][i]
                 out_list_0.append(out[0].cpu())
             if ans_r == "":
                 m_idx = np.argmax(out_list_0)
                 ans_r = ans_r + " " + data[idx]['r'][m_idx]
-                    
-            ans_q = "\"\"" + ans_q +  "\"\""
-            ans_r = "\"\"" + ans_r +  "\"\""
+
+            ans_q = "\"\"" + ans_q + "\"\""
+            ans_r = "\"\"" + ans_r + "\"\""
             ans.append([test_id[0].item(), ans_q, ans_r])
-            
+
     with open(args.pred_file, 'w') as fp:
-         writer = csv.writer(fp)
-         writer.writerow(['id', 'q', 'r'])
-         writer.writerows(ans)             
-        
+        writer = csv.writer(fp)
+        writer.writerow(['id', 'q', 'r'])
+        writer.writerows(ans)
+
+
 if __name__ == "__main__":
     args = get_args()
     main(args)

@@ -9,7 +9,7 @@ from transformers import (
     LongformerTokenizerFast,
     get_linear_schedule_with_warmup,
 )
-from data import RelationalDataset
+from data import LongformerDataset
 from utils import set_seed
 import json
 from model import RelationalModel
@@ -45,7 +45,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--num_epoch", type=int, default=10)
     parser.add_argument("--gradient_accumulation_step", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-5)
-    
+
     # Model settings
     parser.add_argument("--num_classes", type=int, default=2)
 
@@ -67,9 +67,8 @@ def main(args) -> None:
     model = RelationalModel(args.pretrained, args.num_classes)
     model = model.to(device)
 
-    
     # Prepare Dataset and Dataloader
-    train_set = RelationalDataset(
+    train_set = LongformerDataset(
         data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
     train_loader = DataLoader(
         train_set,
@@ -83,7 +82,7 @@ def main(args) -> None:
     gradient_accumulation_step = args.gradient_accumulation_step
     criterion = torch.nn.BCELoss()
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
-    
+
     label1 = torch.concat([torch.ones((args.batch_size, 1)),
                            torch.zeros((args.batch_size, 1))], dim=1).to(device)
     label2 = torch.concat([torch.zeros((args.batch_size, 1)),
@@ -92,11 +91,11 @@ def main(args) -> None:
     epoch_pbar = trange(args.num_epoch, desc="Epoch")
     step = 0
     logging_step = 128
-    
+
     for epoch in epoch_pbar:
         model.train()
         total_loss = 0
-        for (q_and_r_p_list, q_ans, r_and_q_p_list, r_ans) in tqdm(train_loader):         
+        for (q_and_r_p_list, q_ans, r_and_q_p_list, r_ans) in tqdm(train_loader):
             for q_input, q_label in zip(q_and_r_p_list, q_ans):
                 q_input = q_input.to(device)
                 q_label = q_label.to(device)
@@ -124,7 +123,7 @@ def main(args) -> None:
                 normalized_loss = loss / gradient_accumulation_step
                 normalized_loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-                step += 1 
+                step += 1
                 if step % gradient_accumulation_step == 0:
                     optimizer.step()
                     optimizer.zero_grad()
@@ -132,11 +131,9 @@ def main(args) -> None:
                     tqdm.write("Epoch: [{}/{}], Loss: {:.6f}".format(epoch,
                                                                      args.num_epoch, total_loss / 2 / logging_step))
                     total_loss = 0
-                           
+
         torch.save(model.state_dict(), "robertalong.ckpt")
 
-        
-        
 
 if __name__ == "__main__":
     args = get_args()
