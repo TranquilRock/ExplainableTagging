@@ -43,6 +43,47 @@ def json_from_raw_v2(data_path: str) -> List[Dict[str, Union[int, bool, List[str
     return data
 
 
+def flatten_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
+    """Reads from data_path
+    data: Dict[str, Dict[str, Any]]
+        = {
+            '0': {
+                    'q': str,
+                    'r': str,
+                    's': bool,
+                    'qq': List[str],
+                    'rr': List[str],
+                 },
+            ...
+           }
+    """
+    id_map = {}
+    data = []
+    with open(data_path, newline="") as f:
+        reader = csv.DictReader(f, delimiter=",")
+        for row in reader:
+            id, q, r, s, qq, rr = (
+                row["id"],
+                row["q"],
+                row["r"],
+                row["s"],
+                row["q'"],
+                row["r'"],
+            )
+            if id not in id_map:
+                id_map[id] = {
+                    "q": q,
+                    "r": r,
+                    "s": s
+                }
+
+            for _qq in qq:
+                data.append({'id': id, 'q_relevant': _qq})
+            for _rr in rr:
+                data.append({'id': id, 'r_relevant': _rr})
+    return [id_map, data]
+
+
 def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
     """Reads from data_path
     data: Dict[str, Dict[str, Any]]
@@ -83,8 +124,10 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
 
 
 if __name__ == "__main__":
-    with open("/tmp2/b08902011/ExplainableTagging/data/data_v1.json", "w") as f:
-        json.dump(json_from_raw_v2(
+    with open("/tmp2/b08902011/ExplainableTagging/data/data_v2.json", "w") as f:
+        # json.dump(json_from_raw_v2(
+        #     "/tmp2/b08902011/ExplainableTagging/data/raw.csv"), f, indent=4)
+        json.dump(flatten_raw(
             "/tmp2/b08902011/ExplainableTagging/data/raw.csv"), f, indent=4)
 """
 data: Dict[str, Dict[str, Any]]

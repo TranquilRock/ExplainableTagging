@@ -26,7 +26,9 @@ class LongformerDataset(Dataset):
         self.mode = mode
         self.sentence_max_length = sentence_max_length
         self.document_max_length = document_max_length
+        # TODO check the constant of additional TAGs
         self.max_length = self.sentence_max_length + self.document_max_length + 8
+
         if self.mode == "train":
             data = self._preprocess(data)
         data = self._tokenize(data, tokenizer)
