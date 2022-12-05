@@ -42,15 +42,34 @@ class LongformerDataset(Dataset):
         return len(self.data_list)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, bool]:
-        pid, split, sentense_id, is_ans = self.data_list[idx]
+        if self.mode == 'train':
+            pid, split, sentence_id, is_ans = self.data_list[idx]
 
-        ret = self.data[pid][split][sentense_id]
-        ret += self.agree_token if self.data[pid]['s'] else self.disagree_token
-        ret += self.data[pid]['rp' if split == 'q' else 'qp']
-        ret += [PAD] * (self.max_length - len(ret))
-        ret = torch.tensor(ret)
+            if self.data[pid]['s']:
+                ret = self.data[pid][split][sentence_id] + self.agree_token + \
+                    self.data[pid]['rp' if split == 'q' else 'qp']
+            else:
+                ret = self.data[pid][split][sentence_id] + self.disagree_token + \
+                    self.data[pid]['rp' if split == 'q' else 'qp']
+            padding = [PAD] * (self.max_length - len(ret))
+            ret = ret + padding
+            ret = torch.tensor(ret)
 
-        return ret, torch.FloatTensor([1, 0]) if is_ans else torch.FloatTensor([0, 1])
+            return ret, torch.FloatTensor([1, 0]) if is_ans else torch.FloatTensor([0, 1])
+        else:
+            pid, split, sentence_id, sentence = self.data_list[idx]
+
+            if self.data[pid]['s']:
+                ret = self.data[pid][split][sentence_id] + self.agree_token + \
+                    self.data[pid]['rp' if split == 'q' else 'qp']
+            else:
+                ret = self.data[pid][split][sentence_id] + self.disagree_token + \
+                    self.data[pid]['rp' if split == 'q' else 'qp']
+            padding = [PAD] * (self.max_length - len(ret))
+            ret = ret + padding
+            ret = torch.tensor(ret)
+
+            return pid, split, ret, sentence
 
     def _preprocess(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Append answer field."""
@@ -75,9 +94,9 @@ class LongformerDataset(Dataset):
                 del data[key]['rr']
             else:
                 for i, q in enumerate(data[key]['q']):
-                    data_list.append((key, 'q', i, False))
+                    data_list.append((key, 'q', i, q))
                 for i, r in enumerate(data[key]['r']):
-                    data_list.append((key, 'r', i, False))
+                    data_list.append((key, 'r', i, r))
         return data_list
 
     def _tokenize(self,

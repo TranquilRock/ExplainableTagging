@@ -35,18 +35,19 @@ def get_args() -> argparse.Namespace:
 
     # Data settings
     parser.add_argument(
-        "--data_path", default="../data/data_v1.json", type=str)
+        "--data_path", default="../../data/data_v2.json", type=str)
     parser.add_argument("--sentence_max_length", default=256, type=int)
     parser.add_argument("--document_max_length", default=1024, type=int)
-    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--pretrained", type=str,
                         default="allenai/longformer-base-4096")
-
+    parser.add_argument("--save_dir", type=str,
+                        default="..")
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=10)
-    parser.add_argument("--logging_step", type=int, default=128)
-    parser.add_argument("--gradient_accumulation_step", type=int, default=32)
-    parser.add_argument("--lr", type=float, default=1e-5)
+    parser.add_argument("--logging_step", type=int, default=256)
+    parser.add_argument("--gradient_accumulation_step", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=2e-5)
 
     # Model settings
     parser.add_argument("--num_classes", type=int, default=2)
@@ -84,6 +85,7 @@ def main(args) -> None:
     num_epoch = args.num_epoch
     learning_rate = args.lr
     gradient_accumulation_step = args.gradient_accumulation_step
+    save_dir = args.save_dir
     criterion = torch.nn.BCELoss()
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
@@ -93,7 +95,7 @@ def main(args) -> None:
     for epoch in epoch_pbar:
         model.train()
         total_loss = 0
-        for step, inputs, labels in enumerate(tqdm(train_loader)):
+        for step, (inputs, labels) in enumerate(tqdm(train_loader)):
             inputs = inputs.to(device)
             labels = labels.to(device)
             output: torch.Tensor = model(inputs)
@@ -109,7 +111,7 @@ def main(args) -> None:
                 tqdm.write(
                     f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / logging_step:.6f}")
                 total_loss = 0
-        torch.save(model.state_dict(), "robertalong.ckpt")
+        torch.save(model.state_dict(), f"{save_dir}/robertalong.ckpt")
 
 
 if __name__ == "__main__":

@@ -30,7 +30,8 @@ def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
         ]
     For LCS matching.
     """
-    for i in range(len(answer_list)):
+    L = len(answer_list)
+    for i in range(L):
         tmp_entry = []
         for line in answer_list[i]:
             tmp_entry += line.split(' ')
