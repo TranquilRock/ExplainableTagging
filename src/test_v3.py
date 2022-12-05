@@ -1,25 +1,19 @@
+"""Inference for seq2seq"""
+import argparse
+import csv
 import json
 import pickle
-import random
-import argparse
-from pathlib import Path
-from typing import Dict
-
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from tqdm import trange, tqdm
-
 from collections import defaultdict
-import csv
+from pathlib import Path
 
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from data import SeqtoSeqDataset
+from model import SeqtoSeqModel
 from utils import set_seed
 
-from dataset import SeqtoSeqDataset
-
-from model import SeqtoSeqModel
 
 def get_args() -> argparse.Namespace:
     """
@@ -46,7 +40,6 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=8)
-        
 
     # Model settings
     parser.add_argument("--d_model", type=int, default=512)
@@ -60,7 +53,7 @@ def get_args() -> argparse.Namespace:
         "--ckpt_path", default="simple_transformer.ckpt", type=str)
     parser.add_argument(
         "--pred_file", default="submission_simple.csv", type=str)
-    
+
     args = parser.parse_args()
 
     return args
@@ -73,7 +66,7 @@ def main(args) -> None:
     # Get Vocab
     with open(args.cache_dir / "vocab.pkl", "rb") as f:
         vocab: Vocab = pickle.load(f)
-    
+
     # Get data
     with open(args.data_path, newline="", encoding='utf-8') as f:
         data = json.load(f)
@@ -107,7 +100,7 @@ def main(args) -> None:
     model.load_state_dict(ckpt)
     model = model.to(device)
 
-    model.eval()    
+    model.eval()
 
     all_ans = defaultdict()
     with torch.no_grad():
@@ -128,7 +121,7 @@ def main(args) -> None:
                             all_ans[p][s] = query[0]
                         else:
                             all_ans[p][s] = all_ans[p][s] + " " + query[0]
-            
+
     with open(args.pred_file, 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['id', 'q', 'r'])
@@ -137,9 +130,9 @@ def main(args) -> None:
             if 'q' in all_ans[pid].keys():
                 q = "\"\"" + all_ans[pid]['q'] + "\"\""
             if 'r' in all_ans[pid].keys():
-                r = "\"\"" + all_ans[pid]['r'] + "\"\"" 
+                r = "\"\"" + all_ans[pid]['r'] + "\"\""
             writer.writerow([pid, q, r])
 
-    
+
 if __name__ == "__main__":
     main(get_args())

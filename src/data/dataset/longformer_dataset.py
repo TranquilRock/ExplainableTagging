@@ -1,5 +1,5 @@
 """Construct dataset from process_raw.jsonv2()."""
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Tuple, Union
 
 import torch
 import transformers
@@ -41,7 +41,7 @@ class LongformerDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data_list)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, bool]:
+    def __getitem__(self, idx: int) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[str, str, torch.Tensor, str]]:
         if self.mode == 'train':
             pid, split, sentence_id, is_ans = self.data_list[idx]
 
@@ -101,7 +101,7 @@ class LongformerDataset(Dataset):
 
     def _tokenize(self,
                   data: Dict[str, Any],
-                  tokenizer: transformers.PreTrainedTokenizer) -> List[Dict[str, Any]]:
+                  tokenizer: transformers.PreTrainedTokenizer) -> Dict[str, Any]:
 
         for k in data.keys():
             # Encode q as paragraph and skip first CLS

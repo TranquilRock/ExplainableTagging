@@ -173,7 +173,7 @@ def tokenize_and_clean(x: str) -> List[str]:
     return x_split
 
 
-def get_word_label(x_split, xx_split):
+def get_word_label(x_split: List[str], xx_split: List[str]) -> List[int]:
     x_labels = []
     xxcount = 0
     for element in x_split:
@@ -233,7 +233,7 @@ def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
 
 
 def construct_vocab_and_save(
-    data: Dict[str, Any], data_dir: Path
+    data: List[Dict[str, Any]], data_dir: Path
 ) -> None:
     """Build vocab for data_v3"""
     words = Counter()
@@ -248,6 +248,7 @@ def construct_vocab_and_save(
     with open(vocab_path, "wb") as f:
         pickle.dump(vocab, f)
 
+    glove_dim = 0
     glove: Dict[str, List[float]] = {}
     glove_path = data_dir / 'glove.840B.300d.txt'
     with open(glove_path, 'r', encoding='utf-8') as fp:
@@ -274,16 +275,15 @@ def construct_vocab_and_save(
         glove.get(token, [random() * 2 - 1 for _ in range(glove_dim)])
         for token in vocab.tokens
     ]
-    embeddings = torch.tensor(embeddings)
     embedding_path = data_dir / "embeddings.pt"
-    torch.save(embeddings, str(embedding_path))
+    torch.save(torch.tensor(embeddings), str(embedding_path))
 
 
 if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
     data_to_json = data_v3(f"{DATA_ROOT}/raw.csv")
-    # with open(f"{DATA_ROOT}/data_v2.json", "w", encoding='utf-8') as fp:
-    #     print("Write back....")
-    #     json.dump(data_to_json, fp, indent=4)
-    #     print("Done")
+    with open(f"{DATA_ROOT}/data_v2.json", "w", encoding='utf-8') as fp:
+        print("Write back....")
+        json.dump(data_to_json, fp, indent=4)
+        print("Done")
     construct_vocab_and_save(data_to_json, Path(DATA_ROOT))

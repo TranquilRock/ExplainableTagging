@@ -34,7 +34,7 @@ class SeqtoSeqDataset(Dataset):
             pid, split, input_tokens, raw_query = self.data_list[index]
             return pid, split, input_tokens, raw_query
 
-    def _pad_to_len(self, seq: List[int], to_len: int) -> List[List[int]]:
+    def _pad_to_len(self, seq: List[int], to_len: int) -> List[int]:
         pad_seq = seq + [0] * max(0, to_len - len(seq))
         return pad_seq
 

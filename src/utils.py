@@ -1,6 +1,6 @@
 """Helper functions."""
 import random
-from typing import Iterable, List, Optional
+from typing import List
 
 import torch
 from nltk import tokenize
@@ -25,19 +25,19 @@ def lcs_length(str_1: List[str], str_2: List[str]) -> int:
 def cal_score(qq_guess: str, rr_guess: str, qq: List[str], rr: List[str]) -> float:
     """Calculate the score per id."""
 
-    qq_guess = tokenize.word_tokenize(qq_guess)
-    rr_guess = tokenize.word_tokenize(rr_guess)
+    tokenized_qq_guess = tokenize.word_tokenize(qq_guess)
+    tokenized_rr_guess = tokenize.word_tokenize(rr_guess)
 
-    qq = [tokenize.word_tokenize(entry) for entry in qq]
-    rr = [tokenize.word_tokenize(entry) for entry in rr]
+    tokenized_qq = [tokenize.word_tokenize(entry) for entry in qq]
+    tokenized_rr = [tokenize.word_tokenize(entry) for entry in rr]
 
     ret = float('-inf')
-    for qq_ans, rr_ans in zip(qq, rr):
-        q_lcs = lcs_length(qq_guess, qq_ans)
-        r_lcs = lcs_length(rr_guess, rr_ans)
+    for qq_ans, rr_ans in zip(tokenized_qq, tokenized_rr):
+        q_lcs = lcs_length(tokenized_qq_guess, qq_ans)
+        r_lcs = lcs_length(tokenized_rr_guess, rr_ans)
         ret = max(ret,
-                  (q_lcs) / (len(qq_ans) + len(qq_guess) - q_lcs) +
-                  (r_lcs) / (len(rr_ans) + len(rr_guess) - r_lcs))
+                  (q_lcs) / (len(qq_ans) + len(tokenized_qq_guess) - q_lcs) +
+                  (r_lcs) / (len(rr_ans) + len(tokenized_rr_guess) - r_lcs))
     return ret
 
 
@@ -73,5 +73,3 @@ def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
             tmp_entry += line.split(' ')
         answer_list[i] = tmp_entry
     return answer_list
-
-
