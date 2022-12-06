@@ -34,10 +34,11 @@ def get_args() -> argparse.Namespace:
 
     # Data settings
     parser.add_argument(
-        "--data_path", type=Path, default="../../data/data_v3.json")
-    parser.add_argument("--cache_dir", type=Path, default="./cache/")
-    parser.add_argument("--query_max_length", type=int, default=512)
-    parser.add_argument("--document_max_length", type=int, default=512)
+        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/data_v3.json")
+    parser.add_argument("--cache_dir", type=Path,
+                        default="/tmp2/b08902011/ExplainableTagging/data")
+    parser.add_argument("--query_max_length", type=int, default=1024)
+    parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_workers", type=int, default=8)
 
@@ -48,12 +49,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--lr", type=float, default=3e-5)
 
     # Model settings
-    parser.add_argument("--d_model", type=int, default=768)
-    parser.add_argument("--dim_feedforward", type=int, default=2048)
-    parser.add_argument("--nhead", type=int, default=8)
-    parser.add_argument("--num_layers", type=int, default=6)
+    parser.add_argument("--d_model", type=int, default=300)
+    parser.add_argument("--dim_feedforward", type=int, default=1024)
+    parser.add_argument("--nhead", type=int, default=6)
+    parser.add_argument("--num_layers", type=int, default=5)
     parser.add_argument("--num_classes", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--dropout", type=float, default=0.3)
 
     # ckpt path
     parser.add_argument(
@@ -110,7 +111,8 @@ def main(args) -> None:
     num_epoch = args.num_epoch
     learning_rate = args.lr
     gradient_accumulation_step = args.gradient_accumulation_step
-    criterion = torch.nn.BCELoss()
+    # criterion = torch.nn.BCELoss()
+    criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # Start training
@@ -119,7 +121,8 @@ def main(args) -> None:
     for epoch in epoch_pbar:
         model.train()
         total_loss = 0
-        for step, (input_tokens, labels) in enumerate(tqdm(train_loader)):
+        progress = tqdm(train_loader)
+        for step, (input_tokens, labels) in enumerate(progress):
             input_tokens = input_tokens.to(device)
             labels = labels.to(device)
             output: torch.Tensor = model(input_tokens)
@@ -131,10 +134,8 @@ def main(args) -> None:
             if (step + 1) % gradient_accumulation_step == 0:
                 optimizer.step()
                 optimizer.zero_grad()
-            if (step + 1) % logging_step == 0:
-                tqdm.write(
-                    f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / logging_step:.6f}")
-                total_loss = 0
+            progress.set_description(
+                f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / (step + 1):.6f}")
         torch.save(model.state_dict(), args.ckpt_path)
 
 

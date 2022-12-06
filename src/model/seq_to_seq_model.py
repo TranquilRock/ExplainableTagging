@@ -47,21 +47,19 @@ class SeqtoSeqModel(torch.nn.Module):
 
         self.embed = nn.Embedding.from_pretrained(embeddings, freeze=True)
 
-        embedding_dim = embeddings.size(1)
-
-        self.prenet = nn.Linear(embedding_dim, d_model)
-
+        self.prenet = nn.Linear(embeddings.size(1), d_model)
         self.pos_encoder = PositionalEncoder(d_model, dropout)
-
         self.encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model, dim_feedforward=dim_feedforward, nhead=nhead, dropout=dropout
         )
         self.encoder = nn.TransformerEncoder(
-            self.encoder_layer, num_layers=num_layers)
-
+            self.encoder_layer,
+            num_layers=num_layers,
+        )
         self.pred_layer = nn.Sequential(
             nn.Linear(d_model, num_classes),
-            nn.Sigmoid()
+            nn.Sigmoid(),
+            # nn.Softmax(dim = 1),
         )
 
     def forward(self, input_tokens):
@@ -76,7 +74,6 @@ class SeqtoSeqModel(torch.nn.Module):
         out = self.encoder(out)
         # out: (batch size, length, d_model)
         out = out.transpose(0, 1)
-
         out = self.pred_layer(out)
 
         return out

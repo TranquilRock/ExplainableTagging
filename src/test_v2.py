@@ -1,21 +1,17 @@
-"""TEST"""
+"""Inference for longformer sentence regression"""
 import argparse
+import csv
+import json
+from collections import defaultdict
 
 import torch
-import torch.optim as optim
 from torch.utils.data import DataLoader
-import numpy as np
-from tqdm import trange, tqdm
+from tqdm import tqdm
 from transformers import LongformerTokenizerFast
-import json
+
 from data import LongformerDataset
 from model import LongformerRelationModel
 from utils import set_seed
-
-from collections import defaultdict
-
-import copy
-import csv
 
 
 def get_args() -> argparse.Namespace:
