@@ -22,14 +22,14 @@ def lcs_length(str_1: List[str], str_2: List[str]) -> int:
     return lcs[len(str_1) % 2][len(str_2)]
 
 
-def cal_score(qq_guess: str, rr_guess: str, qq: List[str], rr: List[str]) -> float:
+def cal_score(q_rel_guess: str, r_rel_guess: str, q_rel: List[str], r_rel: List[str]) -> float:
     """Calculate the score per id."""
 
-    tokenized_qq_guess = tokenize.word_tokenize(qq_guess)
-    tokenized_rr_guess = tokenize.word_tokenize(rr_guess)
+    tokenized_qq_guess = tokenize.word_tokenize(q_rel_guess)
+    tokenized_rr_guess = tokenize.word_tokenize(r_rel_guess)
 
-    tokenized_qq = [tokenize.word_tokenize(entry) for entry in qq]
-    tokenized_rr = [tokenize.word_tokenize(entry) for entry in rr]
+    tokenized_qq = [tokenize.word_tokenize(line) for line in q_rel]
+    tokenized_rr = [tokenize.word_tokenize(line) for line in r_rel]
 
     ret = float('-inf')
     for qq_ans, rr_ans in zip(tokenized_qq, tokenized_rr):
@@ -50,9 +50,8 @@ def set_seed(seed: int) -> None:
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
+    torch.backends.cudnn.benchmark = False  # type: ignore
+    torch.backends.cudnn.deterministic = True # type: ignore
 
 def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
     """
@@ -66,8 +65,7 @@ def concat_child(answer_list: List[List[str]]) -> List[List[str]]:
         ]
     For LCS matching.
     """
-    L = len(answer_list)
-    for i in range(L):
+    for i in range(len(answer_list)):
         tmp_entry = []
         for line in answer_list[i]:
             tmp_entry += line.split(' ')

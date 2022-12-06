@@ -7,62 +7,13 @@ from pathlib import Path
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm, trange
+from tqdm import trange
+from tqdm.auto import tqdm
 
 from data import SeqtoSeqDataset
 from data.vocab import Vocab
 from model import SeqtoSeqModel
 from utils import set_seed
-
-
-def get_args() -> argparse.Namespace:
-    """
-    Parse arguments
-    """
-    parser = argparse.ArgumentParser()
-
-    # Random seed
-    parser.add_argument("--seed", default=1234, type=int)
-
-    # Device
-    parser.add_argument(
-        "--device",
-        type=torch.device,
-        help="cpu, cuda, cuda:0, cuda:1",
-        default="cuda",
-    )
-
-    # Data settings
-    parser.add_argument(
-        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/data_v3.json")
-    parser.add_argument("--cache_dir", type=Path,
-                        default="/tmp2/b08902011/ExplainableTagging/data")
-    parser.add_argument("--query_max_length", type=int, default=1024)
-    parser.add_argument("--document_max_length", type=int, default=1024)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--num_workers", type=int, default=8)
-
-    # Training settings
-    parser.add_argument("--num_epoch", type=int, default=20)
-    parser.add_argument("--logging_step", type=int, default=256)
-    parser.add_argument("--gradient_accumulation_step", type=int, default=2)
-    parser.add_argument("--lr", type=float, default=3e-5)
-
-    # Model settings
-    parser.add_argument("--d_model", type=int, default=300)
-    parser.add_argument("--dim_feedforward", type=int, default=1024)
-    parser.add_argument("--nhead", type=int, default=6)
-    parser.add_argument("--num_layers", type=int, default=5)
-    parser.add_argument("--num_classes", type=int, default=2)
-    parser.add_argument("--dropout", type=float, default=0.3)
-
-    # ckpt path
-    parser.add_argument(
-        "--ckpt_path", default="simple_transformer.ckpt", type=str)
-
-    args = parser.parse_args()
-
-    return args
 
 
 def main(args) -> None:
@@ -84,7 +35,7 @@ def main(args) -> None:
         vocab,
         args.query_max_length,
         args.document_max_length,
-        args.num_classes,
+        2,
         "train")
     train_loader = DataLoader(
         train_set,
@@ -102,12 +53,12 @@ def main(args) -> None:
         args.nhead,
         args.num_layers,
         args.dropout,
-        args.num_classes,
+        2,
     )
     model = model.to(device)
 
     # Training settings
-    logging_step = args.logging_step
+    # logging_step = args.logging_step
     num_epoch = args.num_epoch
     learning_rate = args.lr
     gradient_accumulation_step = args.gradient_accumulation_step
@@ -126,7 +77,7 @@ def main(args) -> None:
             input_tokens = input_tokens.to(device)
             labels = labels.to(device)
             output: torch.Tensor = model(input_tokens)
-            loss = criterion(output[:, :args.query_max_length, :], labels)
+            loss = criterion(output[:, :args.query_max_length, :].contiguous().view(-1, 2), labels.view(-1))
             total_loss += loss.item()
             normalized_loss = loss / gradient_accumulation_step
             normalized_loss.backward()
@@ -140,4 +91,40 @@ def main(args) -> None:
 
 
 if __name__ == "__main__":
-    main(get_args())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", default=0xC8763, type=int)
+    parser.add_argument(
+        "--device",
+        type=torch.device,
+        help="cpu, cuda, cuda:0, cuda:1",
+        default="cuda",
+    )
+
+    # Data settings
+    parser.add_argument(
+        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/data_v3.json")
+    parser.add_argument("--cache_dir", type=Path,
+                        default="/tmp2/b08902011/ExplainableTagging/data")
+    parser.add_argument("--query_max_length", type=int, default=1024)
+    parser.add_argument("--document_max_length", type=int, default=1024)
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--num_workers", type=int, default=8)
+
+    # Training settings
+    parser.add_argument("--num_epoch", type=int, default=20)
+    parser.add_argument("--logging_step", type=int, default=256)
+    parser.add_argument("--gradient_accumulation_step", type=int, default=5)
+    parser.add_argument("--lr", type=float, default=1e-3)
+
+    # Model settings
+    parser.add_argument("--d_model", type=int, default=300)
+    parser.add_argument("--dim_feedforward", type=int, default=1024)
+    parser.add_argument("--nhead", type=int, default=4)
+    parser.add_argument("--num_layers", type=int, default=8)
+    parser.add_argument("--dropout", type=float, default=0.2)
+
+    # ckpt path
+    parser.add_argument(
+        "--ckpt_path", default="simple_transformer.ckpt", type=str)
+
+    main(parser.parse_args())

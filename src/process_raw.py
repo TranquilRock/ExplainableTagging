@@ -233,7 +233,7 @@ def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
 
 
 def construct_vocab_and_save(
-    data: List[Dict[str, Any]], data_dir: Path
+    data: List[Dict[str, Any]], data_dir: Path, is_test=False,
 ) -> None:
     """Build vocab for data_v3"""
     words = Counter()
@@ -275,15 +275,17 @@ def construct_vocab_and_save(
         glove.get(token, [random() * 2 - 1 for _ in range(glove_dim)])
         for token in vocab.tokens
     ]
-    embedding_path = data_dir / "embeddings.pt"
+    embedding_path = data_dir / f"embeddings{'_test' if is_test else ''}.pt"
     torch.save(torch.tensor(embeddings), str(embedding_path))
 
 
 if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
-    data_to_json = data_v3(f"{DATA_ROOT}/raw.csv")
-    with open(f"{DATA_ROOT}/data_v2.json", "w", encoding='utf-8') as fp:
+    TEST_MOD = True
+    data_to_json = data_v3(
+        f"{DATA_ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD)
+    with open(f"{DATA_ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding='utf-8') as fp:
         print("Write back....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")
-    construct_vocab_and_save(data_to_json, Path(DATA_ROOT))
+    construct_vocab_and_save(data_to_json, Path(DATA_ROOT), is_test=TEST_MOD)

@@ -58,9 +58,9 @@ class SeqtoSeqDataset(Dataset):
                 query_labels = x_labels[i:i+self.query_max_length]
                 query_labels = self._pad_to_len(
                     query_labels, self.query_max_length)
-                query_labels = [[0, 1] if label == 1 else [1, 0]
-                                for label in query_labels]
-                query_labels = torch.FloatTensor(query_labels)
+                # query_labels = [[0, 1] if label == 1 else [1, 0]
+                #                 for label in query_labels]
+                query_labels = torch.LongTensor(query_labels)
                 return (input_tokens, query_labels)
             else:
                 return (pid, split, input_tokens, rawx)

@@ -84,7 +84,7 @@ def main(args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--seed", default=0xC8763, type=int)
     parser.add_argument(
         "--device",
         type=torch.device,
@@ -93,18 +93,19 @@ if __name__ == "__main__":
     )
     # ======== Data settings ===========
     parser.add_argument(
-        "--data_path", type=Path, default="../../data/test_data_v3.json")
-    parser.add_argument("--cache_dir", type=Path, default="./cache/")
-    parser.add_argument("--query_max_length", type=int, default=512)
+        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/test_v3.json")
+    parser.add_argument("--cache_dir", type=Path,
+                        default="/tmp2/b08902011/ExplainableTagging/data")
+    parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=8)
 
     # =========== Model settings ===========
-    parser.add_argument("--d_model", type=int, default=512)
-    parser.add_argument("--dim_feedforward", type=int, default=2048)
-    parser.add_argument("--nhead", type=int, default=4)
-    parser.add_argument("--num_layers", type=int, default=6)
+    parser.add_argument("--d_model", type=int, default=300)
+    parser.add_argument("--dim_feedforward", type=int, default=1024)
+    parser.add_argument("--nhead", type=int, default=6)
+    parser.add_argument("--num_layers", type=int, default=5)
     parser.add_argument("--num_classes", type=int, default=2)
     parser.add_argument("--dropout", type=float, default=0.3)
 
