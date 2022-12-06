@@ -59,7 +59,7 @@ class SeqtoSeqDataset(Dataset):
                 query_labels = torch.FloatTensor(query_labels)
                 return (input_tokens, query_labels)
             else:
-                return (pid, split, input_tokens, rawx)
+                return (pid, split, input_tokens, rawx[i:i+self.query_max_length])
                     
     def _preprocess(self, data: List[Dict]):
         data_list = []
