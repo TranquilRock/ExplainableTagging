@@ -9,3 +9,7 @@ __pycache__
 glove*
 *.pt
 *.pkl
+tmp*
+pred/*
+ckpt/*
+*.vscode

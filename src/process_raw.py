@@ -312,15 +312,15 @@ def construct_vocab_and_save(
 
 
 if __name__ == "__main__":
-    DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
+    ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
     TEST_MOD = True
     data_to_json = data_v3(
-        f"{DATA_ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD
+        f"{ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD
     )
     with open(
-        f"{DATA_ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding="utf-8"
+        f"{ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding="utf-8"
     ) as fp:
         print("Write back....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")
-    construct_vocab_and_save(data_to_json, Path(DATA_ROOT), is_test=TEST_MOD)
+    construct_vocab_and_save(data_to_json, Path(ROOT), is_test=TEST_MOD)
