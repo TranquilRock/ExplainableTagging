@@ -3,8 +3,8 @@ import argparse
 import csv
 import json
 import pickle
+from collections import defaultdict
 from pathlib import Path
-
 
 import torch
 import torch.optim as optim
@@ -14,8 +14,7 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm.auto import tqdm
 
-from data import QDDataset
-from data.vocab import Vocab
+from data import QDDataset, Vocab
 from model import QDNet
 from utils import set_seed
 
@@ -47,7 +46,7 @@ def main(args) -> None:
 
     loader = DataLoader(
         dataset,
-        args.batch_size,
+        args.batch_size if args.train else 1,
         shuffle=True,
         num_workers=8,
     )
@@ -64,7 +63,7 @@ def main(args) -> None:
     model = model.to(device)
 
     if args.train:
-        train(
+        _train(
             model,
             loader,
             args.lr,
@@ -77,6 +76,7 @@ def main(args) -> None:
         _test(model, loader, args.ckpt_path, args.pred_path, device)
 
 
+@torch.no_grad()
 def _test(
     model: nn.Module,
     loader: DataLoader,
@@ -91,33 +91,28 @@ def _test(
 
     model.eval()
 
-    all_ans = {}
-    for pid, split, input_tokens, raw_query in tqdm(loader):
-        input_tokens = input_tokens.to(device)
-        output: torch.Tensor = model(input_tokens)
-        output = output[0]
-        p = pid[0]
-        s = split[0]
-        for out, query in zip(output, raw_query):
-            if out[1] > out[0]:
-                if p not in all_ans:
-                    all_ans[p] = {s: query[0]}
-                else:
-                    if s not in all_ans[p]:
-                        all_ans[p][s] = query[0]
-                    else:
-                        all_ans[p][s] = all_ans[p][s] + " " + query[0]
+    all_ans = defaultdict(lambda: defaultdict(list))
+    for pid, split, query_tokens, article_tokens, raw_art in tqdm(loader):
+        query_tokens = query_tokens.to(device)
+        article_tokens = article_tokens.to(device)
+        output: torch.Tensor = model(
+            query_tokens, article_tokens).squeeze(0)  # batch_size == 1
+        pid: str = pid[0]
+        split: str = split[0]
+        for out, query in zip(output, raw_art):
+            if out.argmax() == 1:
+                all_ans[pid][split].append(query[0])
 
     with open(pred_path, "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["id", "q", "r"])
         for pid, ans in all_ans.items():
-            q = f'""{ans["q"]}""' if "q" in ans.keys() else '""""'
-            r = f'""{ans["r"]}""' if "r" in ans.keys() else '""""'
+            q = f'""{" ".join(ans["q"])}""' if 'q' in ans else '""""'
+            r = f'""{" ".join(ans["r"])}""' if 'r' in ans else '""""'
             writer.writerow([pid, q, r])
 
 
-def train(
+def _train(
     model: nn.Module,
     loader: DataLoader,
     lr: float,
@@ -126,7 +121,8 @@ def train(
     ckpt_path: Path,
     device: torch.device,
 ) -> None:
-    criterion = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.02, 0.98]).to(device))
+    criterion = torch.nn.CrossEntropyLoss(
+        weight=torch.Tensor([0.02, 0.98]).to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     epoch_pbar = trange(num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
@@ -166,7 +162,8 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path, default=f"{ROOT}/data/data_v3.json")
+    parser.add_argument("--data_path", type=Path,
+                        default=f"{ROOT}/data/data_v3.json")
     parser.add_argument("--cache_dir", type=Path, default=f"{ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
@@ -186,8 +183,10 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.2)
 
     # ckpt path
-    parser.add_argument("--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
-    parser.add_argument("--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
+    parser.add_argument(
+        "--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
+    parser.add_argument(
+        "--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
 
     main(parser.parse_args())
