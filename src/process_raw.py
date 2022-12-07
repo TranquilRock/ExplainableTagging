@@ -22,8 +22,8 @@ def data_v1(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     data = [{
             'id': 8,
             'q': [
-                'It can go both ways .', 
-                'We all doubt .', 
+                'It can go both ways .',
+                'We all doubt .',
                 'It is what you do with it that matters .'
             ],
             'r': ['True .'],
@@ -33,91 +33,87 @@ def data_v1(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
             }, ]
     """
     data = []
-    with open(data_path, newline="", encoding='utf-8') as f:
+    with open(data_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
             pid = int(row["id"])
-            s = row["s"] == 'AGREE'
-            q = row["q"].strip('"').split(' .')
-            q = [line.strip(' ') + ' .' for line in q if line != '']
-            r = row["r"].strip('"').split(' .')
-            r = [line.strip(' ') + ' .' for line in r if line != '']
-            qq = row["q'"].strip('"').split(' .')
-            qq = [line.strip(' ') for line in qq if line != '']
-            rr = row["r'"].strip('"').split(' .')
-            rr = [line.strip(' ') for line in rr if line != '']
-            data.append({
-                "id": pid,
-                "q": q,
-                "r": r,
-                "s": s,
-                "qq": qq,
-                "rr": rr,
-            })
+            s = row["s"] == "AGREE"
+            q = row["q"].strip('"').split(" .")
+            q = [line.strip(" ") + " ." for line in q if line != ""]
+            r = row["r"].strip('"').split(" .")
+            r = [line.strip(" ") + " ." for line in r if line != ""]
+            qq = row["q'"].strip('"').split(" .")
+            qq = [line.strip(" ") for line in qq if line != ""]
+            rr = row["r'"].strip('"').split(" .")
+            rr = [line.strip(" ") for line in rr if line != ""]
+            data.append(
+                {
+                    "id": pid,
+                    "q": q,
+                    "r": r,
+                    "s": s,
+                    "qq": qq,
+                    "rr": rr,
+                }
+            )
     return data
 
 
 def data_v2(data_path: str, is_test: bool = False) -> Dict[str, Dict[str, Any]]:
     """Result looks like:
-        {
-            "8": {
-                "q": [
-                    "It can go both ways .",
-                    "We all doubt .",
-                    "It is what you do with it that matters ."
-                ],
-                "r": [
-                    "True ."
-                ],
-                "s": true,
-                "qq": [
-                    "It can go both ways",
-                    "We all doubt",
-                    "It is what you do with it that matters",
-                    "can go both ways",
-                    "We all doubt",
-                    "It is what you do with it that matters",
-                    "It can go both ways",
-                    "We all doubt",
-                    "It is what you do with it that matters"
-                ],
-                "rr": [
-                    "True",
-                    "True",
-                    "True"
-                ]
-            },
-            # ...
-        }
+    {
+        "8": {
+            "q": [
+                "It can go both ways .",
+                "We all doubt .",
+                "It is what you do with it that matters ."
+            ],
+            "r": [
+                "True ."
+            ],
+            "s": true,
+            "qq": [
+                "It can go both ways",
+                "We all doubt",
+                "It is what you do with it that matters",
+                "can go both ways",
+                "We all doubt",
+                "It is what you do with it that matters",
+                "It can go both ways",
+                "We all doubt",
+                "It is what you do with it that matters"
+            ],
+            "rr": [
+                "True",
+                "True",
+                "True"
+            ]
+        },
+        # ...
+    }
     """
     data = {}
-    with open(data_path, newline="", encoding='utf-8') as f:
+    with open(data_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in tqdm(reader):
             pid = row["id"]
-            s = (row["s"] == 'AGREE') if 's' in row else False
-            q = row["q"].strip('"').split(' .')
-            q = [line.strip(' ') + ' .' for line in q if line != '']
-            r = row["r"].strip('"').split(' .')
-            r = [line.strip(' ') + ' .' for line in r if line != '']
+            s = (row["s"] == "AGREE") if "s" in row else False
+            q = row["q"].strip('"').split(" .")
+            q = [line.strip(" ") + " ." for line in q if line != ""]
+            r = row["r"].strip('"').split(" .")
+            r = [line.strip(" ") + " ." for line in r if line != ""]
             if pid not in data:
-                data[pid] = {
-                    "q": q,
-                    "r": r,
-                    "s": s,
-                    'qq': [],
-                    'rr': []
-                }
+                data[pid] = {"q": q, "r": r, "s": s, "qq": [], "rr": []}
             if is_test:
                 continue
-            assert data[pid]['s'] == s and "Same id with different s!!"
-            qq = row["q'"].strip('"').split(' .')
-            qq = [line.strip(' ') for line in qq if line != '']
-            rr = row["r'"].strip('"').split(' .')
-            rr = [line.strip(' ') for line in rr if line != '']
+            assert data[pid]["s"] == s and "Same id with different s!!"
+            qq = row["q'"].strip('"').split(" .")
+            qq = [line.strip(" ") for line in qq if line != ""]
+            rr = row["r'"].strip('"').split(" .")
+            rr = [line.strip(" ") for line in rr if line != ""]
 
-            data[pid]['qq'] += qq
-            data[pid]['rr'] += rr
+            data[pid]["qq"] += qq
+            data[pid]["rr"] += rr
     return data
 
 
@@ -136,7 +132,7 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
            }
     """
     data = {}
-    with open(data_path, newline="", encoding='utf-8') as f:
+    with open(data_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=",")
         for row in reader:
             pid, q, r, s, qq, rr = (
@@ -163,9 +159,41 @@ def dict_from_raw(data_path: str) -> Dict[str, Dict[str, Any]]:
 def tokenize_and_clean(x: str) -> List[str]:
     """Tokenize input string after predifined filtering."""
     symbols = [
-        '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', ' ',
-        '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']',
-        '^', '_', '`', '{', '|', '}', '~', "''", "``"
+        "!",
+        '"',
+        "#",
+        "$",
+        "%",
+        "&",
+        "'",
+        "(",
+        ")",
+        "*",
+        "+",
+        ",",
+        " ",
+        "-",
+        ".",
+        "/",
+        ":",
+        ";",
+        "<",
+        "=",
+        ">",
+        "?",
+        "@",
+        "[",
+        "\\",
+        "]",
+        "^",
+        "_",
+        "`",
+        "{",
+        "|",
+        "}",
+        "~",
+        "''",
+        "``",
     ]
     x_split = word_tokenize(x)
     x_split = [element for element in x_split if element not in symbols]
@@ -192,7 +220,7 @@ def get_word_label(x_split: List[str], xx_split: List[str]) -> List[int]:
 
 def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
     """Construct data for SeqToSeq model with wordwise prediction."""
-    with open(data_path, newline="", encoding='utf-8') as f:
+    with open(data_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=",")
         max_length = 0
         data = []
@@ -218,14 +246,16 @@ def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
                 # exit()
                 r_labels = get_word_label(r_split, rr_split)
 
-            data.append({
-                "id": pid,
-                "q": q_split,
-                "r": r_split,
-                "q_labels": q_labels,
-                "r_labels": r_labels,
-                "s": s
-            })
+            data.append(
+                {
+                    "id": pid,
+                    "q": q_split,
+                    "r": r_split,
+                    "q_labels": q_labels,
+                    "r_labels": r_labels,
+                    "s": s,
+                }
+            )
 
             max_length = max(max_length, max(len(q_split), len(r_split)))
         print("[Stat] max_length: ", max_length)
@@ -233,16 +263,18 @@ def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
 
 
 def construct_vocab_and_save(
-    data: List[Dict[str, Any]], data_dir: Path, is_test=False,
+    data: List[Dict[str, Any]],
+    data_dir: Path,
+    is_test=False,
 ) -> None:
     """Build vocab for data_v3"""
     words = Counter()
     for element in data:
-        words.update([token.lower() for token in element['q']])
-        words.update([token.lower() for token in element['r']])
+        words.update([token.lower() for token in element["q"]])
+        words.update([token.lower() for token in element["r"]])
 
     common_words = {w for w, _ in words.most_common(10000)}
-    assert (('agree' in common_words) and ('disagree' in common_words))
+    assert ("agree" in common_words) and ("disagree" in common_words)
     vocab = Vocab(common_words)
     vocab_path = data_dir / "vocab.pkl"
     with open(vocab_path, "wb") as f:
@@ -250,8 +282,8 @@ def construct_vocab_and_save(
 
     glove_dim = 0
     glove: Dict[str, List[float]] = {}
-    glove_path = data_dir / 'glove.840B.300d.txt'
-    with open(glove_path, 'r', encoding='utf-8') as fp:
+    glove_path = data_dir / "glove.840B.300d.txt"
+    with open(glove_path, "r", encoding="utf-8") as fp:
         row1 = fp.readline()
         # if the first row is not header
         if not re.match("^[0-9]+ [0-9]+$", row1):
@@ -283,8 +315,11 @@ if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
     TEST_MOD = True
     data_to_json = data_v3(
-        f"{DATA_ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD)
-    with open(f"{DATA_ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding='utf-8') as fp:
+        f"{DATA_ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD
+    )
+    with open(
+        f"{DATA_ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding="utf-8"
+    ) as fp:
         print("Write back....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")

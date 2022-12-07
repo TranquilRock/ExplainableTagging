@@ -22,7 +22,7 @@ def main(args) -> None:
 
     with open(args.cache_dir / "vocab.pkl", "rb") as f:
         vocab: Vocab = pickle.load(f)
-    with open(args.data_path, newline="", encoding='utf-8') as f:
+    with open(args.data_path, newline="", encoding="utf-8") as f:
         data = json.load(f)
 
     # Set dataset and dataloader
@@ -32,12 +32,13 @@ def main(args) -> None:
         args.query_max_length,
         args.document_max_length,
         args.num_classes,
-        "test")
+        "test",
+    )
     test_loader = DataLoader(
         test_set,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
     )
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
@@ -73,12 +74,12 @@ def main(args) -> None:
                     else:
                         all_ans[p][s] = all_ans[p][s] + " " + query[0]
 
-    with open(args.pred_file, 'w', encoding='utf-8') as f:
+    with open(args.pred_file, "w", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(['id', 'q', 'r'])
+        writer.writerow(["id", "q", "r"])
         for pid, ans in all_ans.items():
-            q = f'""{ans["q"]}""' if 'q' in ans.keys() else '""""'
-            r = f'""{ans["r"]}""' if 'r' in ans.keys() else '""""'
+            q = f'""{ans["q"]}""' if "q" in ans.keys() else '""""'
+            r = f'""{ans["r"]}""' if "r" in ans.keys() else '""""'
             writer.writerow([pid, q, r])
 
 
@@ -93,9 +94,13 @@ if __name__ == "__main__":
     )
     # ======== Data settings ===========
     parser.add_argument(
-        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/test_v3.json")
-    parser.add_argument("--cache_dir", type=Path,
-                        default="/tmp2/b08902011/ExplainableTagging/data")
+        "--data_path",
+        type=Path,
+        default="/tmp2/b08902011/ExplainableTagging/data/test_v3.json",
+    )
+    parser.add_argument(
+        "--cache_dir", type=Path, default="/tmp2/b08902011/ExplainableTagging/data"
+    )
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=1)
@@ -110,8 +115,6 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.3)
 
     # =========== ckpt path ===========
-    parser.add_argument(
-        "--ckpt_path", default="simple_transformer.ckpt", type=str)
-    parser.add_argument(
-        "--pred_file", default="submission_simple.csv", type=str)
+    parser.add_argument("--ckpt_path", default="simple_transformer.ckpt", type=str)
+    parser.add_argument("--pred_file", default="submission_simple.csv", type=str)
     main(parser.parse_args())

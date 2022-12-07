@@ -32,23 +32,21 @@ def get_args() -> argparse.Namespace:
     )
 
     # Data settings
-    parser.add_argument(
-        "--data_path", default="../../data/test_v2.json", type=str)
+    parser.add_argument("--data_path", default="../../data/test_v2.json", type=str)
     parser.add_argument("--sentence_max_length", default=512, type=int)
     parser.add_argument("--document_max_length", default=2048, type=int)
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--pretrained", type=str,
-                        default="allenai/longformer-base-4096")
+    parser.add_argument(
+        "--pretrained", type=str, default="allenai/longformer-base-4096"
+    )
 
     # Model settings
     parser.add_argument("--num_classes", type=int, default=2)
 
     # ckpt path
-    parser.add_argument(
-        "--ckpt_path", default="robertalong.ckpt", type=str)
+    parser.add_argument("--ckpt_path", default="robertalong.ckpt", type=str)
 
-    parser.add_argument(
-        "--pred_file", default="submission_final.csv", type=str)
+    parser.add_argument("--pred_file", default="submission_final.csv", type=str)
 
     args = parser.parse_args()
 
@@ -73,7 +71,8 @@ def main(args) -> None:
     model = model.to(device)
 
     test_set = LongformerDataset(
-        data, tokenizer, "test", args.sentence_max_length, args.document_max_length)
+        data, tokenizer, "test", args.sentence_max_length, args.document_max_length
+    )
     test_loader = DataLoader(
         test_set,
         batch_size=args.batch_size,
@@ -97,15 +96,14 @@ def main(args) -> None:
                         if split not in all_ans[pid]:
                             all_ans[pid][split] = sentence
                         else:
-                            all_ans[pid][split] = all_ans[pid][split] + \
-                                " " + sentence
+                            all_ans[pid][split] = all_ans[pid][split] + " " + sentence
 
-    with open(args.pred_file, 'w') as fp:
+    with open(args.pred_file, "w") as fp:
         writer = csv.writer(fp)
-        writer.writerow(['id', 'q', 'r'])
+        writer.writerow(["id", "q", "r"])
         for pid in all_ans.keys():
-            q = "\"\"" + all_ans[pid]['q'] + "\"\""
-            r = "\"\"" + all_ans[pid]['r'] + "\"\""
+            q = '""' + all_ans[pid]["q"] + '""'
+            r = '""' + all_ans[pid]["r"] + '""'
             writer.writerow([pid, q, r])
 
 

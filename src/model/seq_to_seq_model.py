@@ -26,7 +26,10 @@ class SeqtoSeqModel(torch.nn.Module):
         self.prenet = nn.Linear(embeddings.size(1), d_model)
         self.pos_encoder = PositionalEncoder(d_model, dropout)
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, dim_feedforward=dim_feedforward, nhead=nhead, dropout=dropout
+            d_model=d_model,
+            dim_feedforward=dim_feedforward,
+            nhead=nhead,
+            dropout=dropout,
         )
         self.encoder = nn.TransformerEncoder(
             self.encoder_layer,

@@ -4,6 +4,7 @@ from typing import Iterable, List, Optional
 
 class Vocab:
     """Vocabulary Dict for token id mapping."""
+
     PAD = "[PAD]"
     UNK = "[UNK]"
 

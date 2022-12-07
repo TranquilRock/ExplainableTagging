@@ -26,22 +26,18 @@ def main(args) -> None:
         vocab: Vocab = pickle.load(f)
 
     # Get data
-    with open(args.data_path, newline="", encoding='utf-8') as f:
+    with open(args.data_path, newline="", encoding="utf-8") as f:
         data = json.load(f)
 
     # Set dataset and dataloader
     train_set = SeqtoSeqDataset(
-        data,
-        vocab,
-        args.query_max_length,
-        args.document_max_length,
-        2,
-        "train")
+        data, vocab, args.query_max_length, args.document_max_length, "train"
+    )
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
     )
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
@@ -77,7 +73,10 @@ def main(args) -> None:
             input_tokens = input_tokens.to(device)
             labels = labels.to(device)
             output: torch.Tensor = model(input_tokens)
-            loss = criterion(output[:, :args.query_max_length, :].contiguous().view(-1, 2), labels.view(-1))
+            loss = criterion(
+                output[:, : args.query_max_length, :].contiguous().view(-1, 2),
+                labels.view(-1),
+            )
             total_loss += loss.item()
             normalized_loss = loss / gradient_accumulation_step
             normalized_loss.backward()
@@ -86,7 +85,8 @@ def main(args) -> None:
                 optimizer.step()
                 optimizer.zero_grad()
             progress.set_description(
-                f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / (step + 1):.6f}")
+                f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / (step + 1):.6f}"
+            )
         torch.save(model.state_dict(), args.ckpt_path)
 
 
@@ -102,9 +102,13 @@ if __name__ == "__main__":
 
     # Data settings
     parser.add_argument(
-        "--data_path", type=Path, default="/tmp2/b08902011/ExplainableTagging/data/data_v3.json")
-    parser.add_argument("--cache_dir", type=Path,
-                        default="/tmp2/b08902011/ExplainableTagging/data")
+        "--data_path",
+        type=Path,
+        default="/tmp2/b08902011/ExplainableTagging/data/data_v3.json",
+    )
+    parser.add_argument(
+        "--cache_dir", type=Path, default="/tmp2/b08902011/ExplainableTagging/data"
+    )
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=4)

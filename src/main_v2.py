@@ -4,6 +4,7 @@ import json
 
 import torch
 import torch.optim as optim
+
 # from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from tqdm import tqdm, trange
@@ -34,15 +35,14 @@ def get_args() -> argparse.Namespace:
     )
 
     # Data settings
-    parser.add_argument(
-        "--data_path", default="../../data/data_v2.json", type=str)
+    parser.add_argument("--data_path", default="../../data/data_v2.json", type=str)
     parser.add_argument("--sentence_max_length", default=256, type=int)
     parser.add_argument("--document_max_length", default=1024, type=int)
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--pretrained", type=str,
-                        default="allenai/longformer-base-4096")
-    parser.add_argument("--save_dir", type=str,
-                        default="..")
+    parser.add_argument(
+        "--pretrained", type=str, default="allenai/longformer-base-4096"
+    )
+    parser.add_argument("--save_dir", type=str, default="..")
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=10)
     parser.add_argument("--logging_step", type=int, default=256)
@@ -63,7 +63,7 @@ def main(args) -> None:
     device = args.device
 
     # Get data
-    with open(args.data_path, newline="", encoding='utf-8') as f:
+    with open(args.data_path, newline="", encoding="utf-8") as f:
         data = json.load(f)
 
     # Load tokenizer and model
@@ -73,7 +73,8 @@ def main(args) -> None:
 
     # Prepare Dataset and Dataloader
     train_set = LongformerDataset(
-        data, tokenizer, "train", args.sentence_max_length, args.document_max_length)
+        data, tokenizer, "train", args.sentence_max_length, args.document_max_length
+    )
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
@@ -109,7 +110,8 @@ def main(args) -> None:
                 optimizer.zero_grad()
             if (step + 1) % logging_step == 0:
                 tqdm.write(
-                    f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / logging_step:.6f}")
+                    f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / logging_step:.6f}"
+                )
                 total_loss = 0
         torch.save(model.state_dict(), f"{save_dir}/robertalong.ckpt")
 
