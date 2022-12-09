@@ -40,27 +40,27 @@ def get_args() -> argparse.Namespace:
 
     # Data settings
     parser.add_argument(
-        "--data_path", type=Path, default="../../data/test_data_v3.json")
+        "--data_path", type=Path, default="../../data/test_data_last.json")
     parser.add_argument("--cache_dir", type=Path, default="./cache/")
-    parser.add_argument("--query_max_length", type=int, default=512)
+    parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=8)
         
 
     # Model settings
-    parser.add_argument("--d_model", type=int, default=512)
+    parser.add_argument("--d_model", type=int, default=768)
     parser.add_argument("--dim_feedforward", type=int, default=2048)
-    parser.add_argument("--nhead", type=int, default=4)
+    parser.add_argument("--nhead", type=int, default=8)
     parser.add_argument("--num_layers", type=int, default=6)
     parser.add_argument("--num_classes", type=int, default=2)
-
+    parser.add_argument("--dropout", type=float, default=0.1)
+    
     # ckpt path
     parser.add_argument(
-        "--ckpt_path", default="simple_transformer.ckpt", type=str)
+        "--ckpt_path", default="simple_transformer_4.ckpt", type=str)
     parser.add_argument(
-        "--pred_file", default="submission_simple.csv", type=str)
-    
+        "--pred_file", default="submission_better_4.csv", type=str)
     args = parser.parse_args()
 
     return args
@@ -94,50 +94,48 @@ def main(args) -> None:
     )
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
-
+    embeddings_layer = torch.load("embed_4.ckpt")
+    
     model = SeqtoSeqModel(
         embeddings,
         args.d_model,
         args.dim_feedforward,
         args.nhead,
         args.num_layers,
+        args.dropout,
         args.num_classes,
     )
     ckpt = torch.load(args.ckpt_path)
     model.load_state_dict(ckpt)
+    model.embed = embeddings_layer
     model = model.to(device)
 
     model.eval()    
 
-    all_ans = defaultdict()
+    all_ans = []
     with torch.no_grad():
-        for pid, split, input_tokens, raw_query in tqdm(test_loader):
+        for pid, input_tokens, raw_query, raw_document  in tqdm(test_loader):
             input_tokens = input_tokens.to(device)
             output: torch.Tensor = model(input_tokens)
             output = output[0]
             p = pid[0]
-            s = split[0]
+            ans_q = ""
+            ans_r = ""
             for out, query in zip(output, raw_query):
                 if out[1] > out[0]:
-                    if p not in all_ans:
-                        ans = defaultdict()
-                        ans[s] = query[0]
-                        all_ans[p] = ans
-                    else:
-                        if s not in all_ans[p]:
-                            all_ans[p][s] = query[0]
-                        else:
-                            all_ans[p][s] = all_ans[p][s] + " " + query[0]
+                    ans_q = ans_q + " " + query[0]
+            for out, query in zip(output[args.query_max_length:], raw_document):
+                if out[1] > out[0]:
+                    ans_r = ans_r + " " + query[0]
+            all_ans.append([p, ans_q, ans_r])
             
     with open(args.pred_file, 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['id', 'q', 'r'])
-        for pid in all_ans.keys():
-            q = r = "\"\"\"\""
-            if 'q' in all_ans[pid].keys():
-                q = "\"\"" + all_ans[pid]['q'] + "\"\""
-            if 'r' in all_ans[pid].keys():
-                r = "\"\"" + all_ans[pid]['r'] + "\"\"" 
+        for d in all_ans:
+            pid = d[0]
+            q = "\"\"" + d[1] + "\"\""
+            r = "\"\"" + d[2] + "\"\"" 
             writer.writerow([pid, q, r])
 
     

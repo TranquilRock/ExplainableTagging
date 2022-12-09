@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 def get_split(x):
     symbols = ['!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', ' ', '-', '.', '/', ':',
-                       ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~', "''", "``"]
+                       ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~', "''", "``", "--"]
     x_split = word_tokenize(x)
     x_split = [element for element in x_split if element not in symbols]
 
@@ -76,9 +76,9 @@ def data_v3(data_path: str, mode: str):
 
 if __name__ == "__main__":
     DATA_ROOT = "/tmp2/b08902123/data/"
-    data_path = f"{DATA_ROOT}/data.csv"
-    dest_path = f"{DATA_ROOT}/data_v3.json"
-    mode = "train"
+    data_path = f"{DATA_ROOT}/test_data.csv"
+    dest_path = f"{DATA_ROOT}/test_data_last.json"
+    mode = "test"
     data_to_json = data_v3(data_path, mode)
     with open(dest_path, "w", encoding='utf-8') as f:
         print("Write back....")

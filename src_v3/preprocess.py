@@ -90,7 +90,7 @@ def parse_args() -> Namespace:
         "--data_path",
         type=Path,
         help="Directory to the dataset.",
-        default="../../data/data_v3.json",
+        default="../../data/data_last.json",
     )
     parser.add_argument(
         "--glove_path",
