@@ -10,6 +10,4 @@ glove*
 *.pt
 *.pkl
 tmp*
-pred/*
-ckpt/*
 *.vscode
