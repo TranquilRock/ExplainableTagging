@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm.auto import tqdm
 
-from data import QDDataset, Vocab
+from data import QDWordDataset, Vocab
 from model import QDNet
 from utils import set_seed
 
@@ -36,7 +36,7 @@ def main(args) -> None:
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
 
-    dataset = QDDataset(
+    dataset = QDWordDataset(
         data,
         vocab,
         args.query_max_length,
@@ -122,7 +122,7 @@ def _train(
     device: torch.device,
 ) -> None:
     criterion = torch.nn.CrossEntropyLoss(
-        weight=torch.Tensor([0.02, 0.98]).to(device))
+        weight=torch.Tensor([0.10, 0.90]).to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     epoch_pbar = trange(num_epoch, desc="Epoch")
     for epoch in epoch_pbar:

@@ -173,14 +173,14 @@ def tokenize_and_clean(x: str) -> List[str]:
         ",",
         " ",
         "-",
-        ".",
+        # ".",
         "/",
         ":",
         ";",
         "<",
         "=",
         ">",
-        "?",
+        # "?",
         "@",
         "[",
         "\\",
@@ -314,13 +314,14 @@ def construct_vocab_and_save(
 if __name__ == "__main__":
     ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
     TEST_MOD = True
-    data_to_json = data_v3(
+    data_to_json = data_v2(
         f"{ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD
     )
     with open(
-        f"{ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding="utf-8"
+        f"{ROOT}/{'test' if TEST_MOD else 'data'}_v2.json", "w", encoding="utf-8"
     ) as fp:
         print("Write back....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")
-    construct_vocab_and_save(data_to_json, Path(ROOT), is_test=TEST_MOD)
+    if not TEST_MOD:
+        construct_vocab_and_save(data_to_json, Path(ROOT), is_test=TEST_MOD)

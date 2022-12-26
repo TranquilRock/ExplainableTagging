@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 
 
-class QDDataset(Dataset):
+class QDWordDataset(Dataset):
     """TODO"""
 
     def __init__(
