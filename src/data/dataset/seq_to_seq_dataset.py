@@ -7,6 +7,8 @@ from torch.utils.data import Dataset
 
 
 class SeqtoSeqDataset(Dataset):
+    """TODO"""
+
     def __init__(
         self,
         data: List[Dict],

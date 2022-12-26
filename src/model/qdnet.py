@@ -27,17 +27,17 @@ class QDNet(torch.nn.Module):
 
         self.encode = PositionalEncoder(d_model, dropout)
 
-        self.query_tranformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=d_model,
-                dim_feedforward=dim_feedforward,
-                nhead=nhead,
-                dropout=dropout,
-            ),
-            num_layers=num_layers,
-        )
+        # self.query_tranformer = nn.TransformerEncoder(
+        #     nn.TransformerEncoderLayer(
+        #         d_model=d_model,
+        #         dim_feedforward=dim_feedforward,
+        #         nhead=nhead,
+        #         dropout=dropout,
+        #     ),
+        #     num_layers=num_layers,
+        # )
 
-        self.document_tranformer = nn.TransformerEncoder(
+        self.query_tranformer = self.document_tranformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(
                 d_model=d_model,
                 dim_feedforward=dim_feedforward,
@@ -55,8 +55,9 @@ class QDNet(torch.nn.Module):
         self, query_tokens: torch.LongTensor, article_tokens: torch.LongTensor
     ) -> torch.LongTensor:
         """TODO"""
-        qry: torch.Tensor = self.embed(query_tokens)
-        # (length, batch size, d_model)
+        length = article_tokens.size(1)
+        qry: torch.Tensor = self.embed(torch.concat(
+            (article_tokens, query_tokens), dim=1))
         qry = qry.permute(1, 0, 2)
         qry = self.encode(qry)
         # (length, batch size, d_model).
@@ -70,5 +71,5 @@ class QDNet(torch.nn.Module):
         art = self.encode(art)
         art = torch.concat((qry, art))
         # Ignore the first output of query
-        art = self.document_tranformer(art)[1:]
+        art = self.document_tranformer(art)[:length]
         return self.cls(art.transpose(0, 1))

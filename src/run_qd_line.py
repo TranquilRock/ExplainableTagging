@@ -14,11 +14,12 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm.auto import tqdm
 
-from data import QDDataset, Vocab
+from data import QDLineDataset, Vocab
 from model import QDNet
 from utils import set_seed
-
-REPO_ROOT = "/tmp2/b08902011/ExplainableTagging"
+from torch.optim import lr_scheduler
+torch.set_printoptions(profile="full")
+ROOT = "/tmp2/b08902011/ExplainableTagging"
 
 
 def main(args) -> None:
@@ -36,7 +37,7 @@ def main(args) -> None:
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
 
-    dataset = QDDataset(
+    dataset = QDLineDataset(
         data,
         vocab,
         args.query_max_length,
@@ -47,8 +48,8 @@ def main(args) -> None:
     loader = DataLoader(
         dataset,
         args.batch_size if args.train else 1,
-        shuffle=True,
-        num_workers=8,
+        shuffle=args.train,
+        num_workers=8 if args.train else 0,
     )
 
     model = QDNet(
@@ -72,8 +73,10 @@ def main(args) -> None:
             args.ckpt_path,
             device,
         )
-    else:
+    elif args.test:
         _test(model, loader, args.ckpt_path, args.pred_path, device)
+    else:
+        print("Nothing to do :(")
 
 
 @torch.no_grad()
@@ -90,26 +93,31 @@ def _test(
     model = model.to(device)
 
     model.eval()
-
-    all_ans = defaultdict(lambda: defaultdict(list))
-    for pid, split, query_tokens, article_tokens, raw_art in tqdm(loader):
+    all_ans = defaultdict(lambda: defaultdict(str))
+    for pid, split, query_tokens, article_tokens, raw_art, article_idx in tqdm(loader):
         query_tokens = query_tokens.to(device)
         article_tokens = article_tokens.to(device)
-        output: torch.Tensor = model(query_tokens, article_tokens).squeeze(
-            0
-        )  # batch_size == 1
+        output: torch.Tensor = model(
+            query_tokens, article_tokens).squeeze(0)  # batch_size == 1
+        count = defaultdict(int)
+        for i, out in enumerate(output):
+            if out.argmax() == 1 and i < len(article_idx):
+                count[article_idx[i].item()] += 1
         pid: str = pid[0]
         split: str = split[0]
-        for out, query in zip(output, raw_art):
-            if out.argmax() == 1:
-                all_ans[pid][split].append(query[0])
-
+        for art_idx, pred in count.items():
+            if pred * 5.2 >= len(raw_art[art_idx][0]):
+                all_ans[pid][split] += raw_art[art_idx][0]
+        if pid not in all_ans or split not in all_ans[pid]:
+            for line in raw_art:
+                all_ans[pid][split] += line[0]
     with open(pred_path, "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["id", "q", "r"])
         for pid, ans in all_ans.items():
-            q = f'""{" ".join(ans["q"])}""' if "q" in ans else '""""'
-            r = f'""{" ".join(ans["r"])}""' if "r" in ans else '""""'
+            # print(ans)
+            q = f'""{ans["q"]}""'  # if 'q' in ans else '""""'
+            r = f'""{ans["r"]}""'  # if 'r' in ans else '""""'
             writer.writerow([pid, q, r])
 
 
@@ -122,8 +130,10 @@ def _train(
     ckpt_path: Path,
     device: torch.device,
 ) -> None:
-    criterion = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.02, 0.98]).to(device))
+    criterion = torch.nn.CrossEntropyLoss(
+        weight=torch.Tensor([1, 10]).to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
     epoch_pbar = trange(num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
         model.train()
@@ -135,7 +145,7 @@ def _train(
             labels = labels.view(-1).to(device)
             output: torch.Tensor = model(query_tokens, article_tokens)
             loss = criterion(
-                output[:, : labels.size(0), :].contiguous().view(-1, 2),
+                output.view(-1, 2),
                 labels,
             )
             total_loss += loss.item()
@@ -148,6 +158,8 @@ def _train(
             progress.set_description(
                 f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / (step + 1):.6f}"
             )
+        print(output.argmax(dim = 1).sum())
+        scheduler.step()
         torch.save(model.state_dict(), ckpt_path)
 
 
@@ -162,8 +174,9 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path, default=f"{REPO_ROOT}/data/data_v3.json")
-    parser.add_argument("--cache_dir", type=Path, default=f"{REPO_ROOT}/data")
+    parser.add_argument("--data_path", type=Path,
+                        default=f"{ROOT}/data/data_v2.json")
+    parser.add_argument("--cache_dir", type=Path, default=f"{ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=4)
@@ -171,18 +184,21 @@ if __name__ == "__main__":
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=20)
     parser.add_argument("--accumulation", type=int, default=5)
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=1e-4)
 
     # Model settings
-    parser.add_argument("--d_model", type=int, default=400)
-    parser.add_argument("--dim_feedforward", type=int, default=1024)
+    parser.add_argument("--d_model", type=int, default=512)
+    parser.add_argument("--dim_feedforward", type=int, default=2048)
     parser.add_argument("--nhead", type=int, default=8)
-    parser.add_argument("--num_layers", type=int, default=8)
-    parser.add_argument("--dropout", type=float, default=0.2)
+    parser.add_argument("--num_layers", type=int, default=4)
+    parser.add_argument("--dropout", type=float, default=0.1)
 
     # ckpt path
-    parser.add_argument("--ckpt_path", default=f"{REPO_ROOT}/ckpt/qd.ckpt", type=str)
-    parser.add_argument("--pred_path", default=f"{REPO_ROOT}/pred/out.csv", type=str)
+    parser.add_argument(
+        "--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
+    parser.add_argument(
+        "--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
+    parser.add_argument("--test", action="store_true")
 
     main(parser.parse_args())
