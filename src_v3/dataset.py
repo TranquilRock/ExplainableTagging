@@ -12,13 +12,11 @@ class SeqtoSeqDataset(Dataset):
         vocab: Vocab,
         query_max_length: int,
         document_max_length: int,
-        num_classes: int,
         mode: str,
     ):
         self.query_max_length = query_max_length
         self.document_max_length = document_max_length
         self.mode = mode
-        self.num_classes = num_classes
         self.vocab = vocab
         self.data_list = self._preprocess(data)
         

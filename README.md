@@ -27,5 +27,12 @@
 - Please refer to requirements.txt
 
 ## How to run
-1. Install
-    - 
+1. Install requirements.txt with the following command.
+    - pip install -r requirements.txt
+1. Change directory to src/
+1. Run process_raw.py
+    - python process_raw.py
+1. Run any of the three methods
+    - python run_qd_line.py
+    - python run_qd_word.py
+    - python run_s2s.py

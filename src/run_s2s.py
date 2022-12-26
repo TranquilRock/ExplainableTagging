@@ -18,7 +18,7 @@ from tqdm import tqdm, trange
 from model import SeqtoSeqModel
 from utils import set_seed
 
-REPO_ROOT = "/tmp2/b08902011/ExplainableTagging"
+REPO_ROOT = "../ExplainableTagging"
 
 
 def main(args) -> None:
@@ -75,15 +75,17 @@ def main(args) -> None:
             args.query_max_length,
             args.document_max_length,
         )
-    else:
+    elif args.test:
         _test(
             model,
             loader,
             args.ckpt_path,
-            args.pred_path,
+            args.pred_file,
             device,
             args.query_max_length,
         )
+    else:
+        print("Nothing to do :(")
 
 
 def _train(
@@ -145,14 +147,13 @@ def _train(
                 )
                 total_loss = 0
         torch.save(model.state_dict(), ckpt_path)
-        torch.save(model.embed, "embed_4.ckpt")
 
 
 def _test(
     model: nn.Module,
     loader: DataLoader,
     ckpt_path: Path,
-    pred_path: Path,
+    pred_file: Path,
     device: torch.device,
     query_max_length: int,
 ) -> None:
@@ -179,7 +180,7 @@ def _test(
                     ans_r = ans_r + " " + query[0]
             all_ans.append([p, ans_q, ans_r])
 
-    with open(pred_path, "w") as fp:
+    with open(pred_file, "w") as fp:
         writer = csv.writer(fp)
         writer.writerow(["id", "q", "r"])
         for d in all_ans:
@@ -200,7 +201,9 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path, default=f"{REPO_ROOT}/data/data_v3.json")
+    parser.add_argument(
+        "--data_path", type=Path, default=f"{REPO_ROOT}/data/data_v3.json"
+    )
     parser.add_argument("--cache_dir", type=Path, default=f"{REPO_ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
@@ -220,11 +223,10 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.1)
 
     # ckpt path
-    parser.add_argument(
-        "--ckpt_path", default=f"{REPO_ROOT}/ckpt/simple_transformer_4.ckpt", type=str
-    )
-    parser.add_argument(
-        "--pred_file", default=f"{REPO_ROOT}/pred/submission_better_4.csv", type=str
-    )
+    parser.add_argument("--ckpt_path", default=f"{REPO_ROOT}/ckpt/s2s.ckpt", type=str)
+    parser.add_argument("--pred_file", default=f"{REPO_ROOT}/pred/out.csv", type=str)
+    parser.add_argument("--train", action="store_true")
+    parser.add_argument("--test", action="store_true")
+
     arguments = parser.parse_args()
     main(arguments)

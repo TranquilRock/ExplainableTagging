@@ -18,9 +18,8 @@ from data import QDLineDataset, Vocab
 from model import QDNet
 from utils import set_seed
 from torch.optim import lr_scheduler
-torch.set_printoptions(profile="full")
-ROOT = "/tmp2/b08902011/ExplainableTagging"
 
+REPO_ROOT = "../"
 
 def main(args) -> None:
     """Main entry."""
@@ -97,8 +96,9 @@ def _test(
     for pid, split, query_tokens, article_tokens, raw_art, article_idx in tqdm(loader):
         query_tokens = query_tokens.to(device)
         article_tokens = article_tokens.to(device)
-        output: torch.Tensor = model(
-            query_tokens, article_tokens).squeeze(0)  # batch_size == 1
+        output: torch.Tensor = model(query_tokens, article_tokens).squeeze(
+            0
+        )  # batch_size == 1
         count = defaultdict(int)
         for i, out in enumerate(output):
             if out.argmax() == 1 and i < len(article_idx):
@@ -130,8 +130,7 @@ def _train(
     ckpt_path: Path,
     device: torch.device,
 ) -> None:
-    criterion = torch.nn.CrossEntropyLoss(
-        weight=torch.Tensor([1, 10]).to(device))
+    criterion = torch.nn.CrossEntropyLoss(weight=torch.Tensor([1, 10]).to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
     epoch_pbar = trange(num_epoch, desc="Epoch")
@@ -158,7 +157,7 @@ def _train(
             progress.set_description(
                 f"Epoch: [{epoch}/{num_epoch}], Loss: {total_loss / (step + 1):.6f}"
             )
-        print(output.argmax(dim = 1).sum())
+        print(output.argmax(dim=1).sum())
         scheduler.step()
         torch.save(model.state_dict(), ckpt_path)
 
@@ -174,9 +173,8 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path,
-                        default=f"{ROOT}/data/data_v2.json")
-    parser.add_argument("--cache_dir", type=Path, default=f"{ROOT}/data")
+    parser.add_argument("--data_path", type=Path, default=f"{REPO_ROOT}/data/data_v2.json")
+    parser.add_argument("--cache_dir", type=Path, default=f"{REPO_ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=4)
@@ -194,10 +192,8 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.1)
 
     # ckpt path
-    parser.add_argument(
-        "--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
-    parser.add_argument(
-        "--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
+    parser.add_argument("--ckpt_path", default=f"{REPO_ROOT}/ckpt/qd.ckpt", type=str)
+    parser.add_argument("--pred_path", default=f"{REPO_ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--test", action="store_true")
 

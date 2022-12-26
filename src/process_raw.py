@@ -11,12 +11,14 @@ from random import random
 from typing import Any, Dict, List, Union
 
 import torch
+import nltk
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 
 from data import Vocab
 
-DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
+DATA_ROOT = "../data/"
+
 
 def data_v1(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
@@ -312,6 +314,10 @@ def construct_vocab_and_save(
 
 
 if __name__ == "__main__":
+    nltk.download("punkt")
+    
+    # ====================== v3 ======================
+
     data_to_json = data_v3(f"{DATA_ROOT}/raw.csv", is_test=False)
     with open(f"{DATA_ROOT}/data_v3.json", "w", encoding="utf-8") as fp:
         print("Write back train file....")
@@ -322,6 +328,20 @@ if __name__ == "__main__":
 
     data_to_json = data_v3(f"{DATA_ROOT}/test.csv", is_test=True)
     with open(f"{DATA_ROOT}/test_v3.json", "w", encoding="utf-8") as fp:
+        print("Write back test file....")
+        json.dump(data_to_json, fp, indent=4)
+        print("Done")
+
+    # ===================== v2 ======================
+
+    data_to_json = data_v2(f"{DATA_ROOT}/raw.csv", is_test=False)
+    with open(f"{DATA_ROOT}/data_v2.json", "w", encoding="utf-8") as fp:
+        print("Write back train file....")
+        json.dump(data_to_json, fp, indent=4)
+        print("Done")
+
+    data_to_json = data_v2(f"{DATA_ROOT}/test.csv", is_test=True)
+    with open(f"{DATA_ROOT}/test_v2.json", "w", encoding="utf-8") as fp:
         print("Write back test file....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")

@@ -37,8 +37,6 @@ class SeqtoSeqModel(torch.nn.Module):
         )
         self.pred_layer = nn.Sequential(
             nn.Linear(d_model, num_classes),
-            # nn.Sigmoid(),
-            # nn.Softmax(dim = 1),
         )
 
     def forward(self, input_tokens):

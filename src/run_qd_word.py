@@ -18,7 +18,7 @@ from data import QDWordDataset, Vocab
 from model import QDNet
 from utils import set_seed
 
-REPO_ROOT = "/tmp2/b08902011/ExplainableTagging"
+REPO_ROOT = "../"
 
 
 def main(args) -> None:
@@ -72,9 +72,10 @@ def main(args) -> None:
             args.ckpt_path,
             device,
         )
-    else:
+    elif args.test:
         _test(model, loader, args.ckpt_path, args.pred_path, device)
-
+    else:
+        print("Nothing to do :(")
 
 @torch.no_grad()
 def _test(
@@ -186,5 +187,6 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt_path", default=f"{REPO_ROOT}/ckpt/qd.ckpt", type=str)
     parser.add_argument("--pred_path", default=f"{REPO_ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
+    parser.add_argument("--test", action="store_true")
 
     main(parser.parse_args())
