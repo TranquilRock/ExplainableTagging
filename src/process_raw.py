@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from data import Vocab
 
+DATA_ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
 
 def data_v1(data_path: str) -> List[Dict[str, Union[int, bool, List[str]]]]:
     """Reads raw data file from data_path
@@ -265,7 +266,6 @@ def data_v3(data_path: str, is_test: bool = False) -> List[Dict[str, Any]]:
 def construct_vocab_and_save(
     data: List[Dict[str, Any]],
     data_dir: Path,
-    is_test=False,
 ) -> None:
     """Build vocab for data_v3"""
     words = Counter()
@@ -307,20 +307,21 @@ def construct_vocab_and_save(
         glove.get(token, [random() * 2 - 1 for _ in range(glove_dim)])
         for token in vocab.tokens
     ]
-    embedding_path = data_dir / f"embeddings{'_test' if is_test else ''}.pt"
+    embedding_path = data_dir / "embeddings.pt"
     torch.save(torch.tensor(embeddings), str(embedding_path))
 
 
 if __name__ == "__main__":
-    ROOT = "/tmp2/b08902011/ExplainableTagging/data/"
-    TEST_MOD = True
-    data_to_json = data_v3(
-        f"{ROOT}/{'test.csv' if TEST_MOD else 'raw.csv'}", is_test=TEST_MOD
-    )
-    with open(
-        f"{ROOT}/{'test' if TEST_MOD else 'data'}_v3.json", "w", encoding="utf-8"
-    ) as fp:
-        print("Write back....")
+    data_to_json = data_v3(f"{DATA_ROOT}/raw.csv", is_test=False)
+    with open(f"{DATA_ROOT}/data_v3.json", "w", encoding="utf-8") as fp:
+        print("Write back train file....")
         json.dump(data_to_json, fp, indent=4)
         print("Done")
-    construct_vocab_and_save(data_to_json, Path(ROOT), is_test=TEST_MOD)
+
+    construct_vocab_and_save(data_to_json, Path(DATA_ROOT))
+
+    data_to_json = data_v3(f"{DATA_ROOT}/test.csv", is_test=True)
+    with open(f"{DATA_ROOT}/test_v3.json", "w", encoding="utf-8") as fp:
+        print("Write back test file....")
+        json.dump(data_to_json, fp, indent=4)
+        print("Done")

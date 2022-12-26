@@ -18,7 +18,7 @@ from data import QDDataset, Vocab
 from model import QDNet
 from utils import set_seed
 
-ROOT = "/tmp2/b08902011/ExplainableTagging"
+REPO_ROOT = "/tmp2/b08902011/ExplainableTagging"
 
 
 def main(args) -> None:
@@ -162,8 +162,8 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path, default=f"{ROOT}/data/data_v3.json")
-    parser.add_argument("--cache_dir", type=Path, default=f"{ROOT}/data")
+    parser.add_argument("--data_path", type=Path, default=f"{REPO_ROOT}/data/data_v3.json")
+    parser.add_argument("--cache_dir", type=Path, default=f"{REPO_ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=4)
@@ -181,8 +181,8 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.2)
 
     # ckpt path
-    parser.add_argument("--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
-    parser.add_argument("--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
+    parser.add_argument("--ckpt_path", default=f"{REPO_ROOT}/ckpt/qd.ckpt", type=str)
+    parser.add_argument("--pred_path", default=f"{REPO_ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
 
     main(parser.parse_args())
