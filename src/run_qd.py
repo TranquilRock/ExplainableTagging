@@ -95,8 +95,9 @@ def _test(
     for pid, split, query_tokens, article_tokens, raw_art in tqdm(loader):
         query_tokens = query_tokens.to(device)
         article_tokens = article_tokens.to(device)
-        output: torch.Tensor = model(
-            query_tokens, article_tokens).squeeze(0)  # batch_size == 1
+        output: torch.Tensor = model(query_tokens, article_tokens).squeeze(
+            0
+        )  # batch_size == 1
         pid: str = pid[0]
         split: str = split[0]
         for out, query in zip(output, raw_art):
@@ -107,8 +108,8 @@ def _test(
         writer = csv.writer(f)
         writer.writerow(["id", "q", "r"])
         for pid, ans in all_ans.items():
-            q = f'""{" ".join(ans["q"])}""' if 'q' in ans else '""""'
-            r = f'""{" ".join(ans["r"])}""' if 'r' in ans else '""""'
+            q = f'""{" ".join(ans["q"])}""' if "q" in ans else '""""'
+            r = f'""{" ".join(ans["r"])}""' if "r" in ans else '""""'
             writer.writerow([pid, q, r])
 
 
@@ -121,8 +122,7 @@ def _train(
     ckpt_path: Path,
     device: torch.device,
 ) -> None:
-    criterion = torch.nn.CrossEntropyLoss(
-        weight=torch.Tensor([0.02, 0.98]).to(device))
+    criterion = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.02, 0.98]).to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     epoch_pbar = trange(num_epoch, desc="Epoch")
     for epoch in epoch_pbar:
@@ -162,13 +162,11 @@ if __name__ == "__main__":
     )
 
     # Data settings
-    parser.add_argument("--data_path", type=Path,
-                        default=f"{ROOT}/data/data_v3.json")
+    parser.add_argument("--data_path", type=Path, default=f"{ROOT}/data/data_v3.json")
     parser.add_argument("--cache_dir", type=Path, default=f"{ROOT}/data")
     parser.add_argument("--query_max_length", type=int, default=1024)
     parser.add_argument("--document_max_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--8", type=int, default=8)
 
     # Training settings
     parser.add_argument("--num_epoch", type=int, default=20)
@@ -183,10 +181,8 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", type=float, default=0.2)
 
     # ckpt path
-    parser.add_argument(
-        "--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
-    parser.add_argument(
-        "--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
+    parser.add_argument("--ckpt_path", default=f"{ROOT}/ckpt/qd.ckpt", type=str)
+    parser.add_argument("--pred_path", default=f"{ROOT}/pred/out.csv", type=str)
     parser.add_argument("--train", action="store_true")
 
     main(parser.parse_args())
